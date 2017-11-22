@@ -1,0 +1,27 @@
+      !!!!Collision Variables!!!!
+	 
+	    real col_temp_r,col_data_r
+      common /col_info_r/ col_temp_r(9,2*lhis)
+                     
+      
+      integer new_nid !processor that the collision data is stored
+      integer col_temp_i,col_handle,exit_handle
+      common /col_info_i/ col_temp_i(6,2*lhis),
+     $                    col_handle,exit_handle,new_nid
+      real d,dmin,emin,xn,yn,zn,wrk,wrk2,m1,wrk_n 
+      common /wall_distance/ d(lx1,ly1,lz1,lelt),
+     $ dmin(lx1,ly1,lz1,lelt),emin(lx1,ly1,lz1,lelt),
+     $ xn(lx1,ly1,lz1,lelt),yn(lx1,ly1,lz1,lelt),
+     $ zn(lx1,ly1,lz1,lelt),wrk(lx1*ly1*lz1*lelt,ldim),
+     $ wrk2(lx1*ly1*lz1*lelt), m1(lx1,ly1,lz1,lelt),
+     $ wrk_n(lx1*ly1*lz1*lelt,ldim)
+	    !!! Index particle collision data positions
+      integer rc_index,ic_index
+      parameter( rc_index=9, ic_index=6)
+      character*3 b 
+      parameter(b='W  ')
+      !!Max value for the coeff. of restitution
+      real e_max,e_beta,res ! The maximum res coeff,res 
+                            !  parameter,resitution
+      parameter(e_max=0.91,e_beta=35)
+

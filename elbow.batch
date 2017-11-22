@@ -1,0 +1,81 @@
+################################################################################
+#
+# 2014-04-04 -- Example 'qsub' job submission script for Torque
+#    More information is available in the qsub(1) manual page.
+#
+################################################################################
+
+# Use the Bash Shell
+#PBS -S /bin/bash
+
+# Put a unique job name here
+# so that you can monitor it in the queue
+#PBS -N elbow_avg
+
+# Define the queue you're submitting to
+#PBS -q production.q
+
+# Notifying user by email at the beginning,end,abort,suspensions of the job run
+##PBS -M venterrm@clarkson.edu
+##PBS -m eab
+
+# Uncomment to pass all current environment variables
+#PBS -V
+# Uncomment to pass a single environment variable
+# #PBS -v VAR_TO_PASS
+
+# Redirecting standard output / error to files
+# named "output" and "errors"
+#PBS -o output
+#PBS -e errors
+
+# The max walltime for this job is 1 hour 31 minutes
+# Set this longer than required for run!!!
+# Set number of nodes/ppn to number of cores required: 8..1 is 8 nodes, 1 core per node
+#PBS -l walltime=96:00:00,nodes=8:ppn=12
+
+# Keep this.
+cd $PBS_O_WORKDIR
+echo elbow > SESSION.NAME
+echo `pwd`'/' >> SESSION.NAME
+rm -f elbow.his1
+rm -f elbow.sch1
+rm -f elbow.log1
+mv elbow.log elbow.log1
+mv elbow.his elbow.his1
+mv elbow.sch elbow.sch1
+rm -f logfile
+rm -f ioinfo
+echo "This job was started in $(pwd)"
+echo "The start time was $(date)"
+echo "The job id is $PBS_JOBID"
+
+NSLOTS=`cat $PBS_NODEFILE | wc -l`
+PE='mpich'
+
+################################################################################
+##
+## Debugging output that will end up in $HOME/jobname.oJOBNUMBER :
+##
+#echo "NSLOTS:: $NSLOTS"
+#echo "PBS_NODEFILE:: $PBS_NODEFILE"
+#echo "BEGIN NODEFILE"
+#cat $PBS_NODEFILE
+#echo "END NODEFILE"
+################################################################################
+
+# Actual commands to run the job code
+#LD_LIBRARY_PATH=/usr/mpi/gcc/mvapich2-1.9/lib /usr/mpi/gcc/mvapich2-1.9/bin/mpiexec -np $NSLOTS -machinefile $PBS_NODEFILE /path/to/my/compiled-program
+
+#./test.command
+##sleep 5
+mpirun -np $NSLOTS -machinefile $PBS_NODEFILE ./nek5000 > elbow.log
+##sleep 5
+ln elbow.log logfile
+exit 0;
+
+
+
+
+
+

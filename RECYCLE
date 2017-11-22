@@ -1,0 +1,12 @@
+     !! This stores the info for the flow and particle
+     !! recycled conditions
+      integer lxyze,yzels,elcount
+      !!! Note that the space allocated for lxyze is based on the mesh !!!
+      !!! This needs to be upodated before running the simulation      !!!
+      real recycle_pos,upstream_pos,outlet_pos
+      parameter(recycle_pos=5.5, upstream_pos=11, outlet_pos=11)
+      parameter(yzels=2*(10**2)) !!Right now this does not match the mesh, also in the turbulent_inlet, there is no check for right-handnest
+      parameter(lxyze=ly1*lz1*yzels) 
+      integer recycl_map(4,yzels),wrk_map(4,yzels),new_n
+      common /recycle_condition / recycl_map,wrk_map,new_n
+      !!common /irecycle_condtion/ 

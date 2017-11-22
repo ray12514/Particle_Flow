@@ -1,0 +1,406 @@
+c-----------------------------------------------------------------------
+C
+C  USER SPECIFIED ROUTINES:
+C
+C     - boundary conditions
+C     - initial conditions
+C     - variable properties
+C     - local acceleration for fluid (a)
+C     - forcing function for passive scalar (q)
+C     - general purpose routine for checking errors etc.
+C
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+
+c     Note: this is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+
+
+      real retau
+c
+      visc=param(2)
+      g=param(5)
+      retau=310
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      qvol   = 0.0
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      real m1(lx1,ly1,lz1,lelt),d(lx1,ly1,lz1,lelt)
+      character*132 sourcefld
+      real uin,rq
+      
+      uin=1.0
+      rq =1.5
+      
+      !This is here in case I want to interpolate to new mesh       
+      !sourcefld='start0.f00001'
+      !call gfldr(sourcefld)
+      !call outpost(vx,vy,vz,pr,t,'   ') 
+      !call exitt
+      
+      call turb_outflow(d,m1,rq,uin)
+         
+      call set_inflow
+      call shear
+      
+
+      if (istep.eq.0) then 
+        time=0
+        call outpost(vx,vy,vz,pr,t,'   ') ! Part. coordination
+
+      endif
+      call get_gradient
+      call avg_all_flow  
+      if (istep.gt.2) then 
+        call particle_generator
+      endif
+
+      !Trigger save based on iostep
+      !call  my_full_restart     
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine my_full_restart
+      include 'SIZE'
+      include 'TOTAL'
+
+      character*80 s80(3)
+
+      call blank(s80,3*80)
+      s80(1) ='rs6elbow0.f00001'
+      s80(2) ='rs6elbow0.f00002'
+      s80(3) ='rs6elbow0.f00003'
+    !  s80(4) ='rs6elbow0.f00004'
+
+!       call full_restart(s80,3)  ! Will overload 5-8 onto steps 0-3
+
+
+      iosave = iostep           ! Trigger save based on iostep
+      call full_restart_save(iosave)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      common /rbc/ ubc(lx1,ly1,lz1,lelt)
+     $           , vbc(lx1,ly1,lz1,lelt)
+     $           , wbc(lx1,ly1,lz1,lelt)
+
+
+      integer e,eg,f
+      e = gllel(eg)
+
+      ux=ubc(ix,iy,iz,e)
+      uy=vbc(ix,iy,iz,e) 
+      uz=wbc(ix,iy,iz,e)
+      temp=0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      
+      integer idum
+      save    idum 
+      data    idum / 0 /
+
+      one = 1.0
+      pi  = 4.*atan(one) 
+      eps = 0.05
+      mag=(0.25)*(pi*pi)
+      magg=(-0.25)*(pi*pi)
+      if (idum.eq.0) idum = 99 + nid
+!       blunt profile w/ random perturbations
+      if (x.le.-0.5) then
+      	 ux  = mag*sin(pi*(0.5-y))*sin(pi*(0.5-z))+eps*(ran1(idum)-.5)
+      	 uy  = eps*(ran1(idum)-.5)
+      	 uz  = eps*(ran1(idum)-.5)
+      elseif (x.gt.-0.5 .and. y.gt.-0.5) then
+      	 ux  = mag*sin(pi*(0.5-y))*sin(pi*(0.5-z))+eps*(ran1(idum)-.5)
+      	 uy  = magg*sin(pi*(0.5-x))*sin(pi*(0.5-z))+eps*(ran1(idum)-.5)
+     	 uz  = eps*(ran1(idum)-.5)
+      else 
+      	 ux  = eps*(ran1(idum)-.5)
+     	   uy  = magg*sin(pi*(0.5-x))*sin(pi*(0.5-z))+eps*(ran1(idum)-.5)
+      	 uz  = eps*(ran1(idum)-.5)
+      endif
+!       ux=0.0
+!       uy=0.0
+!       uz=0.0 
+      
+      temp=0
+      
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+      
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2  !  Modify geometry 
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      call fix_geom
+      param(59) = 0 
+      param(65)=1. 
+      param(66) = 6.
+      param(67) = 6.
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine shear
+      include 'SIZE'  
+      include 'TOTAL' 
+      include 'ZPER'
+
+      
+      common /drag/ dragx_avg,dragy_avg,dragz_avg
+
+      common /ctorq/ dragx(0:maxobj),dragpx(0:maxobj),dragvx(0:maxobj)
+     $             , dragy(0:maxobj),dragpy(0:maxobj),dragvy(0:maxobj)
+     $             , dragz(0:maxobj),dragpz(0:maxobj),dragvz(0:maxobj)
+c
+     $             , torqx(0:maxobj),torqpx(0:maxobj),torqvx(0:maxobj)
+     $             , torqy(0:maxobj),torqpy(0:maxobj),torqvy(0:maxobj)
+     $             , torqz(0:maxobj),torqpz(0:maxobj),torqvz(0:maxobj)
+      real x0(3)
+      integer icalld
+      save    icalld
+      data    icalld  /0/
+      rho   = param(1)
+      dnu   = param(2)
+      delta = 0.5
+     
+      if(icalld.eq.0) then	
+        call set_obj! define objects for surface integrals
+        call rzero(x0,3)    
+        
+       
+        atime = 0.
+        timel = time
+        icalld = 1
+      endif
+      call torque_calc(1.0,x0,.false.,.false.)
+      
+      dtime = time - timel
+      atime = atime + dtime
+       
+      if (atime.ne.0. .and. dtime.ne.0.) then
+        beta      = dtime/atime
+        alpha     = 1.-beta
+        
+        dragx_avg = alpha*dragx_avg + beta*(dragvx(0))
+        dragy_avg = alpha*dragy_avg + beta*(dragvy(0))
+        dragz_avg = alpha*dragz_avg + beta*(dragvz(0))
+      endif
+      
+      !call domain_size(xmin,xmax,ymin,ymax,zmin,zmax)
+      !Surface area of the domain
+      A_w=4*21
+      tw_x     = dragx_avg/A_w + 1.e-50
+      tw_y     = dragy_avg/A_w + 1.e-50
+      tw_z     = dragz_avg/A_w + 1.e-50
+      tw_mag=sqrt(tw_x**2+tw_y**2+tw_z**2)
+      u_tau  = sqrt(tw_mag/rho)
+      Re_tau = u_tau*delta/dnu
+      
+      iastep = param(68)
+      if  (iastep.eq.0) iastep=param(15)   ! same as iostep
+      if  (iastep.eq.0) iastep=500
+
+      if ( (mod(istep,(iastep/10)).eq.0.and.istep.gt.1)) then
+         if(nid.eq.0) then
+         write(6,*) 'shear...' 
+         write(6,*) tw_x, 'wall shear x'
+         write(6,*) tw_y, 'wall shear y'
+         write(6,*) tw_z, 'wall shear z'
+         write(6,*) tw_mag, 'wall shear mag'
+         write(6,*) u_tau , 'shear velocity'
+         write(6,*) Re_tau, 'Re_tau'
+         endif
+c         call exitt
+      endif 
+ 
+      timel = time 
+      return
+      end
+c-------------------------------------------------------------------------------------
+      subroutine set_obj  ! define objects for surface integrals
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer e,f
+      real check(lelt)
+      integer cc
+      save cc
+      data cc /0/
+      
+      call rzero(check,nelt)
+
+      !Define new objects
+
+      nobj = 1			! for Periodic in the x-direction
+      iobj = 0
+      do ii=nhis+1,nhis+nobj
+         iobj = iobj+1
+         hcode(10,ii) = 'I'
+         hcode( 1,ii) = 'F' ! 'F'
+         hcode( 2,ii) = 'F' ! 'F'
+         hcode( 3,ii) = 'F' ! 'F'
+         lochis(1,ii) = iobj
+      enddo
+      nhis = nhis + nobj
+c
+      if (maxobj.lt.nobj) write(6,*) 'increase maxobj in SIZEu. rm *.o'
+      if (maxobj.lt.nobj) call exitt
+      
+      !Make sure I don't count the outlet boundary if using the 
+      !turbulent outlet condition  
+      cc=0
+      do e=1,nelv
+      do f=1,2*ndim
+       if (cbc(f,e,1).eq.'O  ') then
+           cc=cc+1
+           check(cc)=e 
+           goto 4000
+       endif
+      
+      enddo
+ 4000   continue            
+      enddo
+      
+
+      nxyz = nx1*ny1*nz1
+      do e=1,nelv
+          do i=1,cc 
+          if (e.eq.check(i)) then 
+          goto 3000
+          endif
+          enddo
+      do f=1,2*ndim
+         if (cbc(f,e,1).eq.'W  ') then
+            
+            iobj = 0
+            iobj=1  ! lower wall
+           
+            if (iobj.gt.0) then
+               nmember(iobj) = nmember(iobj) + 1
+               mem = nmember(iobj)
+               ieg = lglel(e)
+               object(iobj,mem,1) = ieg
+               object(iobj,mem,2) = f
+              !write(6,1) iobj,mem,f,ieg,e,nid,' OBJ'
+    1          format(6i9,a4)
+            endif
+
+         endif
+      enddo
+3000   continue     
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------     
+      subroutine get_gradient ()
+      implicit none  
+      include 'SIZE'
+      include 'TOTAL'
+      include 'PARTICLES'
+      integer icalld 
+      save    icalld
+      data    icalld /0/
+
+      if (icalld.eq.0) then
+        icalld = 1  
+        call rzero(u_grad,nx1*ny1*nz1*nelv*ndim)
+        call rzero(v_grad,nx1*ny1*nz1*nelv*ndim)
+        call rzero(w_grad,nx1*ny1*nz1*nelv*ndim)
+      endif
+      !grad U
+      call gradm1(u_grad(1,1),u_grad(1,2),u_grad(1,3),vx)
+      !grad V
+      call gradm1(v_grad(1,1),v_grad(1,2),v_grad(1,3),vy)
+      !grad W
+      call gradm1(w_grad(1,1),w_grad(1,2),w_grad(1,3),vz)
+
+      return 
+      end
+c------------------------------------------------------------------------
+
+c automatically added by makenek
+      subroutine usrsetvert(glo_num,nel,nx,ny,nz) ! to modify glo_num
+      integer*8 glo_num(1)
+
+      return
+      end
+
+c automatically added by makenek
+      subroutine userqtl
+
+      call userqtl_scig
+
+      return
+      end

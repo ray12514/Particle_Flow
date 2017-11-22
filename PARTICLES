@@ -1,0 +1,99 @@
+!         Variables for the particles
+!
+      integer pgrp
+      parameter(pgrp = 1) ! Particle group number
+       integer jrc,jpt,je0,jps,jai,jgn,jcp,jcl,nai,jr,jd,jx,
+     $           jy,jz,jx1,jx2,jx3,ja0
+     $          ,ja1,ja2,ja3,jv0,jv1,jv2,jv3
+     $         ,ju0,ju1,ju2,ju3,jgu,jgv,jgw,
+     $          jwd,jwn,jpd,jrh,jdt,jar,nar
+      common /ptpointers/ jrc,jpt,je0,jps,jai,
+     $          jgn,jcp,jcl,nai,jr,jd,jx,
+     $           jy,jz,jx1,jx2,jx3,ja0
+     $          ,ja1,ja2,ja3,jv0,jv1,jv2,jv3
+     $         ,ju0,ju1,ju2,ju3,jgu,jgv,jgw,
+     $          jwd,jwn,jpd,jrh,jdt,jar,nar
+
+
+	    real           upavg(lx1*ly1*lz1*lelv*pgrp)
+     $               ,vpavg(lx1*ly1*lz1*lelv*pgrp)
+     $               ,wpavg(lx1*ly1*lz1*lelv*pgrp)
+     $               ,uprms(lx1*ly1*lz1*lelv*pgrp)
+     $               ,vprms(lx1*ly1*lz1*lelv*pgrp)
+     $               ,wprms(lx1*ly1*lz1*lelv*pgrp)
+     $               ,vpwms(lx1*ly1*lz1*lelv*pgrp)
+     $               ,wpums(lx1*ly1*lz1*lelv*pgrp)
+     $               ,upvms(lx1*ly1*lz1*lelv*pgrp)
+     $               ,ufavg(lx1*ly1*lz1*lelv*pgrp)
+     $               ,vfavg(lx1*ly1*lz1*lelv*pgrp)
+     $               ,wfavg(lx1*ly1*lz1*lelv*pgrp)
+     $               ,ufrms(lx1*ly1*lz1*lelv*pgrp)
+     $               ,vfrms(lx1*ly1*lz1*lelv*pgrp)
+     $               ,wfrms(lx1*ly1*lz1*lelv*pgrp)
+     $               ,vfwms(lx1*ly1*lz1*lelv*pgrp)
+     $               ,wfums(lx1*ly1*lz1*lelv*pgrp)
+     $               ,ufvms(lx1*ly1*lz1*lelv*pgrp)   
+     $               ,allcon(lx1*ly1*lz1*lelv*pgrp)  
+      common /part_var/upavg,vpavg,wpavg,uprms,vprms,wprms,vpwms
+     $                ,wpums,upvms,ufavg,vfavg,wfavg,ufrms,vfrms,wfrms
+     $                ,vfwms,wfums,ufvms,allcon
+      real            ppr(lx1,ly1,lz1,lelv)
+     $               ,pravg(lx1,ly1,lz1,lelv)
+     $               ,prrms(lx1,ly1,lz1,lelv)  
+     $               ,u2ums(lx1,ly1,lz1,lelv)
+     $               ,v2vms(lx1,ly1,lz1,lelv)
+     $               ,w2wms(lx1,ly1,lz1,lelv)
+     $               ,p2pms(lx1,ly1,lz1,lelv)
+     $               ,u2vms(lx1,ly1,lz1,lelv)
+     $               ,u2wms(lx1,ly1,lz1,lelv)
+     $               ,v2ums(lx1,ly1,lz1,lelv)
+     $               ,v2wms(lx1,ly1,lz1,lelv)
+     $               ,w2ums(lx1,ly1,lz1,lelv)
+     $               ,w2vms(lx1,ly1,lz1,lelv)
+     $               ,uvwms(lx1,ly1,lz1,lelv)
+     $               ,pums(lx1,ly1,lz1,lelv)
+     $               ,pvms(lx1,ly1,lz1,lelv)
+     $               ,pwms(lx1,ly1,lz1,lelv)
+     $               ,pdudx(lx1,ly1,lz1,lelv,ldim)
+     $               ,pdvdx(lx1,ly1,lz1,lelv,ldim)
+     $               ,pdwdx(lx1,ly1,lz1,lelv,ldim)
+     $               ,u4m(lx1,ly1,lz1,lelv) 
+     $               ,v4m(lx1,ly1,lz1,lelv) 
+     $               ,w4m(lx1,ly1,lz1,lelv) 
+     $               ,p4m(lx1,ly1,lz1,lelv)
+     $               ,e11(lx1,ly1,lz1,lelv)
+     $               ,e22(lx1,ly1,lz1,lelv)
+     $               ,e33(lx1,ly1,lz1,lelv)
+     $               ,e12(lx1,ly1,lz1,lelv)
+     $               ,e13(lx1,ly1,lz1,lelv)
+     $               ,e23(lx1,ly1,lz1,lelv)
+
+      common /extra_stuff/  ppr,pravg,prrms,u2ums,v2vms,
+     $                      w2wms,p2pms,u2vms,u2wms,
+     $                      v2ums,v2wms,w2ums,w2vms,uvwms,pums,pvms,pwms
+     $                      ,pdudx,pdvdx,pdwdx,u4m,v4m,w4m,p4m,
+     $                      e11,e22,e33,e12,e13,e23
+      real concen(lx1,ly1,lz1,lelv,pgrp)
+      real vpdavg(lx1,ly1,lz1,lelv,pgrp,ldim)
+      real updavg(lx1,ly1,lz1,lelv,pgrp,ldim)
+      common /concon/ concen,updavg,vpdavg
+      real                aptime,ptimel,dptime 
+      common /avgpartime/ aptime,ptimel,dptime   
+      
+      logical intpart
+      parameter (intpart = .false.) !If true call particle_init
+      integer ihandle_local,ihandle_remote,cr_handle
+      common /iv_intp/ ihandle_local,ihandle_remote,cr_handle 
+      !Adding the velocity gradient blocks here, will probably move !them at some pt.
+      real u_grad(lx1*ly1*lz1*lelv,ldim)
+      real v_grad(lx1*ly1*lz1*lelv,ldim)
+      real w_grad(lx1*ly1*lz1*lelv,ldim)
+      common /uvw_grad/ u_grad,v_grad,w_grad 
+      !These variables are for the postprocessing stats
+      real STATS(lx1*ly1*lz1*lelv,44)
+      real CSTATS(lx1*ly1*lz1*lelv,80)
+      common /TURB_STATS/ STATS,CSTATS
+      integer n_var,n_st_f
+      parameter (n_var=44)
+      parameter (n_st_f=11) 
+
