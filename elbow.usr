@@ -79,22 +79,22 @@ c-----------------------------------------------------------------------
       !call outpost(vx,vy,vz,pr,t,'   ') 
       !call exitt
       
-      call turb_outflow(d,m1,rq,uin)
-         
-      call set_inflow
-      call shear
+!       call turb_outflow(d,m1,rq,uin)
+        call do_stuff 
+!       call set_inflow
+!       call shear
       
 
-      if (istep.eq.0) then 
-        time=0
-        call outpost(vx,vy,vz,pr,t,'   ') ! Part. coordination
+!       if (istep.eq.0) then 
+!         time=0
+!         call outpost(vx,vy,vz,pr,t,'   ') ! Part. coordination
 
-      endif
-      call get_gradient
-      call avg_all_flow  
-      if (istep.gt.2) then 
+!       endif
+!       call get_gradient
+!       call avg_all_flow  
+!       if (istep.gt.2) then 
         call particle_generator
-      endif
+!       endif
 
       !Trigger save based on iostep
       !call  my_full_restart     
@@ -364,6 +364,25 @@ c
       return
       end
 c-----------------------------------------------------------------------     
+      subroutine do_stuff ()
+      implicit none  
+      include 'SIZE'
+      include 'TOTAL'
+      include 'PARTICLES'
+      real m1(lx1,ly1,lz1,lelt),d(lx1,ly1,lz1,lelt)
+      real uin,rq
+      
+      uin=1.0
+      rq =1.5
+      call turb_outflow(d,m1,rq,uin)
+      call set_inflow
+      call shear
+      call get_gradient
+      call get_sij
+      call avg_all_flow
+      return
+      end   
+c-----------------------------------------------------------------------     
       subroutine get_gradient ()
       implicit none  
       include 'SIZE'
@@ -389,3 +408,77 @@ c-----------------------------------------------------------------------
       return 
       end
 c------------------------------------------------------------------------
+      subroutine get_sij ()
+      implicit none
+      include 'SIZE'
+      include 'TOTAL'
+      include 'PARTICLES'
+      real ntot,sij_cons
+      real tempr(lx1,ly1,lz1,lelv)
+      integer icalld 
+      save    icalld
+      data    icalld /0/
+      ntot=nx1*ny1*nz1*nelv
+      sij_cons=0.5
+      if (icalld.eq.0) then
+        icalld = 1
+        call rzero(tempr,ntot)  
+        call rzero(dsij,ntot*6)
+        call rzero(sijsji,ntot)
+      endif
+                    ! 0.5(du/dx + du/dx)
+                    !S11
+      call add3s12(dsij(1,1),u_grad(1,1),u_grad(1,1),
+     $   sij_cons,sij_cons,ntot)
+                    ! 0.5(dv/dy + dv/dy)
+                    !S22
+      call add3s12(dsij(1,2),v_grad(1,1),v_grad(1,1),
+     $   sij_cons,sij_cons,ntot)
+                    ! 0.5(dw/dz + dw/dz)
+                    !S33
+      call add3s12(dsij(1,3),w_grad(1,1),w_grad(1,1),
+     $   sij_cons,sij_cons,ntot)
+                    ! 0.5(du/dz + dv/dy)
+                    !S12
+      call add3s12(dsij(1,4),u_grad(1,1),v_grad(1,1),
+     $   sij_cons,sij_cons,ntot)
+                    ! 0.5(du/dz + dw/dx)
+                    !S13     
+      call add3s12(dsij(1,5),u_grad(1,1),w_grad(1,1),
+     $   sij_cons,sij_cons,ntot)
+                    ! 0.5(dv/dz + dw/dy)
+                    !S23
+      call add3s12(dsij(1,6),v_grad(1,1),w_grad(1,1),
+     $   sij_cons,sij_cons,ntot) 
+      
+                !SijSji=S11**2+
+      call Xaddcol3(sijsji,dsij(1,1),dsij(1,1),ntot)
+                !S22**2+
+      call Xaddcol3(sijsji,dsij(1,2),dsij(1,2),ntot)
+                !S33**2+
+      call Xaddcol3(sijsji,dsij(1,3),dsij(1,3),ntot)
+                !2*S12**2+
+      call csqr(tempr,dsij(1,4),2.0,ntot)
+      call add2(sijsji,tempr,ntot)
+                !2*S13**2+
+               
+      call csqr(tempr,dsij(1,5),2.0,ntot)
+      call add2(sijsji,tempr,ntot)
+                !2*S23**2
+      call csqr(tempr,dsij(1,6),2.0,ntot)
+      call add2(sijsji,tempr,ntot)
+
+      return
+      end
+c-----------------------------------------------------------------
+      subroutine csqr(a,b,c,n)
+      real a(1),b(1),c
+      integer n
+      do i=1,n
+         a(i)=c*b(i)**2
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+
