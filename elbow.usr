@@ -66,12 +66,7 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       include 'NEKUSE'
-      real m1(lx1,ly1,lz1,lelt),d(lx1,ly1,lz1,lelt)
       character*132 sourcefld
-      real uin,rq
-      
-      uin=1.0
-      rq =1.5
       
       !This is here in case I want to interpolate to new mesh       
       !sourcefld='start0.f00001'
@@ -79,22 +74,16 @@ c-----------------------------------------------------------------------
       !call outpost(vx,vy,vz,pr,t,'   ') 
       !call exitt
       
-!       call turb_outflow(d,m1,rq,uin)
-        call do_stuff 
-!       call set_inflow
-!       call shear
-      
 
-!       if (istep.eq.0) then 
-!         time=0
-!         call outpost(vx,vy,vz,pr,t,'   ') ! Part. coordination
+      call do_stuff 
+      if (istep.eq.0) then 
+        time=0
+        call outpost(vx,vy,vz,pr,t,'   ') ! Part. coordination
+      endif 
 
-!       endif
-!       call get_gradient
-!       call avg_all_flow  
-!       if (istep.gt.2) then 
+      if (istep.gt.2) then 
         call particle_generator
-!       endif
+      endif
 
       !Trigger save based on iostep
       !call  my_full_restart     

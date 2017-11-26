@@ -41,9 +41,9 @@ c      data max_eg /0/
      
 ! c     Connect slab next to the last with inflow (recycling method)
       if(icalld.eq.0) then
-!         call crystal_setup (il_handle,nekcomm,np) 
+!         call fgslib_crystal_setup (il_handle,nekcomm,np) 
         call get_points 
-        call gs_setup(gsh_bc,glo_num,n,nekcomm,mp)
+        call fgslib_gs_setup(gsh_bc,glo_num,n,nekcomm,mp)
         icalld=1
       endif
 
@@ -61,9 +61,9 @@ c
       call col2(wbc,v3mask,n)
 !       call outpost(ubc,vbc,wbc,pr,t,'ok2   ')
 
-      call gs_op(gsh_bc,ubc,1,1,0)  ! 1 ==> +  ! uin(inflow) = vx(slab_k)
-      call gs_op(gsh_bc,vbc,1,1,0)  ! 1 ==> +
-      call gs_op(gsh_bc,wbc,1,1,0)  ! 1 ==> +
+      call fgslib_gs_op(gsh_bc,ubc,1,1,0)  ! 1 ==> +  ! uin(inflow) = vx(slab_k)
+      call fgslib_gs_op(gsh_bc,vbc,1,1,0)  ! 1 ==> +
+      call fgslib_gs_op(gsh_bc,wbc,1,1,0)  ! 1 ==> +
 !        
 !        call outpost(ubc,vbc,wbc,pr,t,'ok3   ')
 !      call exitt   
@@ -148,7 +148,7 @@ c-----------------------------------------------------------------------
       save px,py,pz
       data pgln,pln,pgel,plel,rnid,stpr /1,2,3,4,5,6/
       data px,py,pz /1,2,3/
-      logical tempu_l !Dummy place holder for the crystal router 
+      logical tempu_l !Dummy place holder for the fgslib_crystal router 
       tolin=1e-4
       nface = 2*ndim
       nxyz  = nx1*ny1*nz1
@@ -171,9 +171,9 @@ c-----------------------------------------------------------------------
 !       call rzero(temp_e,ly1*)
 !       call izero(temp_n,i_index*lxyze)  
       
-      call crystal_setup (up_handle,nekcomm,np) 
-      call crystal_setup (down_handle,nekcomm,np)
-      call crystal_setup (rcylc_hand,nekcomm,np) 
+      call fgslib_crystal_setup (up_handle,nekcomm,np) 
+      call fgslib_crystal_setup (down_handle,nekcomm,np)
+      call fgslib_crystal_setup (rcylc_hand,nekcomm,np) 
        
       do e=1,nelv
          eg = lglel(e)
@@ -246,10 +246,10 @@ c            gl_gl(glo_loc)=glo_loc
 !         enddo
 !       endif
 
-      call crystal_tuple_transfer(up_handle,uc,lxyze
+      call fgslib_crystal_tuple_transfer(up_handle,uc,lxyze
      $       ,upstream_i,i_index,upstream_l,nl,upstream_r,r_index,stpr)
       
-      call crystal_tuple_transfer(down_handle,dc,lxyze
+      call fgslib_crystal_tuple_transfer(down_handle,dc,lxyze
      $ ,downstream_i,i_index,downstream_l,nl,downstream_r,r_index,stpr)
 
 !       if (uc.ne.0) then
@@ -319,10 +319,10 @@ c            gl_gl(glo_loc)=glo_loc
         enddo                
  100   continue
       enddo
-!       crystal_ituple_transfer(h, ituple,m,n,max, kp)
-      call crystal_ituple_transfer(rcylc_hand,recycl_map,
+!       fgslib_crystal_ituple_transfer(h, ituple,m,n,max, kp)
+      call fgslib_crystal_ituple_transfer(rcylc_hand,recycl_map,
      $   4,elcount,yzels,2)
-      call crystal_tuple_transfer(up_handle,uc,lxyze
+      call fgslib_crystal_tuple_transfer(up_handle,uc,lxyze
      $       ,upstream_i,i_index,upstream_l,nl,upstream_r,r_index,rnid)
 
       if (uc.ne.0)  write(6,*) uc, nid ,'back_i'

@@ -67,12 +67,15 @@
      $               ,e12(lx1,ly1,lz1,lelv)
      $               ,e13(lx1,ly1,lz1,lelv)
      $               ,e23(lx1,ly1,lz1,lelv)
+     $               ,dsij(lx1*ly1*lz1*lelv,6)
+     $               ,sijsji(lx1,ly1,lz1,lelv)
 
       common /extra_stuff/  ppr,pravg,prrms,u2ums,v2vms,
      $                      w2wms,p2pms,u2vms,u2wms,
-     $                      v2ums,v2wms,w2ums,w2vms,uvwms,pums,pvms,pwms
-     $                      ,pdudx,pdvdx,pdwdx,u4m,v4m,w4m,p4m,
-     $                      e11,e22,e33,e12,e13,e23
+     $                      v2ums,v2wms,w2ums,w2vms,
+     $                      uvwms,pums,pvms,pwms,
+     $                      pdudx,pdvdx,pdwdx,u4m,v4m,w4m,p4m,
+     $                      e11,e22,e33,e12,e13,e23,dsij,sijsji
       real concen(lx1,ly1,lz1,lelv,pgrp)
       real vpdavg(lx1,ly1,lz1,lelv,pgrp,ldim)
       real updavg(lx1,ly1,lz1,lelv,pgrp,ldim)
@@ -81,7 +84,7 @@
       common /avgpartime/ aptime,ptimel,dptime   
       
       logical intpart
-      parameter (intpart = .false.) !If true call particle_init
+      parameter (intpart = .true.) !If true call particle_init
       integer ihandle_local,ihandle_remote,cr_handle
       common /iv_intp/ ihandle_local,ihandle_remote,cr_handle 
       !Adding the velocity gradient blocks here, will probably move !them at some pt.
