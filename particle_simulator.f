@@ -58,14 +58,14 @@ c     Minimal value of nr = 14*ndim + 1
       jgw = jgv+ ndim ! Pointer to w grad at current timestep
       
       jwd = jgw+ndim  ! Pointer to distance to nearest wall
-      jwn=  jwd+ndim  ! Pointer to nearest wall coordinates
-      jpd=  jwn+ndim  ! Pointer to particle diameter
-      jrh=  jpd+1     ! Pointer to particle density 
-      jdt=  jrh+1     ! Pointer to du/dt at particle location   
-      jar = jdt+ndim     ! Pointer to auxiliary reals
-                         !Right now used as used to used to store
-                         !Particle ,stokes number 
-      nar = nr - (jar-1)  ! Number of auxiliary reals
+      jwn = jwd+ndim  ! Pointer to nearest wall coordinates
+      jpd = jwn+ndim  ! Pointer to particle diameter
+      jrh = jpd+1     ! Pointer to particle density 
+      jdt = jrh+1     ! Pointer to du/dt at particle location   
+      jar = jdt+ndim  ! Particle to stokes number
+      jds = jar+2*ndim ! Pointer to stress tensor
+      jss = jds+1     ! Pointer to SijSji
+      nar = nr - (jss-1)  ! Number of auxiliary reals
 
       if (nar.le.0) call exitti('Error in nar:$',nr)
       return
@@ -79,7 +79,7 @@ c----------------------------------------------------------------------
       
 !       include 'CTIMER'
       integer lr,li
-      parameter (lr=24*ldim+3,li=8+1)
+      parameter (lr=26*ldim+1,li=8+1)
       real rpart
       common /rparts/ rpart(lr,lhis)
       integer ipart
@@ -492,9 +492,10 @@ c-----------------------------------------------------------------------
       save    icallp,rstpart
       data    icallp,rstpart /0,0/
       integer i,k
-      character*128 fname
+      character*128 fname,FRMT
       
-      
+        write(FRMT,4) num_reals,num_ints
+ 4      format('(1p',I2,'e17.9,',I1,'I9)')
       if (icallp.eq.0.or.mod(istep,particle_io).eq.0
      $   .or.lastep.eq.1) then 
         icallp = icallp+1 
@@ -518,9 +519,9 @@ c-----------------------------------------------------------------------
  3      format('PART/',I4.4,'_rstpart',i5.5,'.3D')
         open(unit=73,file=fname)
         write(73,'(I8)') num_total  
-        write(73,4)((real_parts(k,i),k=1,num_reals)
+        write(73,FMT=FRMT)((real_parts(k,i),k=1,num_reals)
      $     ,(integer_parts(k,i),k=1,num_ints),i=1,num_total)
- 4      format(1p75e17.9,9I9)
+!  4      format(1p75e17.9,9I9)
         close(73)
         if(nid.eq.0) write(6,*)'restartp output', rstpart 
         if(rstpart.eq.2) rstpart=0
@@ -548,7 +549,7 @@ c-----------------------------------------------------------------------
       integer nmax
       parameter(nmax=lhis)
       integer lrf,lif 
-      parameter (lrf=24*ldim+3,lif=8+1)
+      parameter (lrf=26*ldim+1,lif=8+1)
       real               loc_rpts(lrf,lhis),rem_rpts(lrf,lhis)
       common /fptspartr/ loc_rpts,rem_rpts
       integer            loc_ipts(lif,lhis),rem_ipts(lif,lhis)
@@ -1353,21 +1354,32 @@ c-----------------------------------------------------------------------
       real visc,rho_f,p_Reynolds,Accel,rho_p,d_ratio428,mat_div
       real cm,g(ldim),cd_r,Stokes,Stokes_mean,FG,FD,FS,FL,FP,Term_v
       integer icalld
-      save icalld
+      real KK
+      save icalld,KK
       data icalld /0/
       save g,rho_f,cm
       data g /0.0,-9.81,0.0/
 !       data g /0.0,0.0,0.0/
       data cm /0.5/
+      integer dij_cons(3,3),h
+      save dij_cons 
+      data dij_cons / 1,2,5
+     $               ,4,2,6
+     $               ,5,6,4/
+      real rel_vel,diju
       real d_ratio,dvdt,g_mag,pv,u_mag,v_mag,vu_mag,coeff_D
       integer i,j,k
+
       visc=param(02)
+      KK=2.594
       pi    = 4.*atan(1.0)
       rho_f=param(01)
       
       call vel_gradient(real_parts,num_reals,
      &   integer_parts,num_ints,num_total)
       call dudt(real_parts,num_reals,
+     &   integer_parts,num_ints,num_total)
+      call lift_var(real_parts,num_reals,
      &   integer_parts,num_ints,num_total)
       
       do i=1,num_total
@@ -1434,8 +1446,6 @@ c-----------------------------------------------------------------------
 !         if(nnp.eq.1)write(6,*) 'Stokes number: ',Stokes
 !         if(nnp.eq.1)write(6,*) 'Term_velocity',Term_v
 !         if(nnp.eq.1)write(6,*) 'Term_velocity_ex',Term_v_ex
-
-         
         do j=0,ndim-1 
           FG=pv*g(j+1)*(rho_p - rho_f)
 !           if(nnp.eq.1)write(6,*)'Force acting on particle FG', FG, j+1 
@@ -1456,7 +1466,13 @@ c-----------------------------------------------------------------------
 !           if(nnp.eq.1)write(6,*)'dvdx',real_parts(jgu+1+k,i) , j+1
 !           if(nnp.eq.1)write(6,*)'dwdx',real_parts(jgu+2+k,i) , j+1
 !           if(nnp.eq.1)write(6,*)'mat_div',mat_div , j+1
-
+          diju=0.0
+          do h=1,ndim
+            rel_vel=(real_parts(jv0+h-1,i)-real_parts(ju0+h-1,i))
+            diju=diju+dij_cons(h,j+1)*rel_vel
+          enddo
+          FL=2*KK*(visc**.5)*diju
+          FL=FL/(d_ratio*real_parts(jpd,i)*(real_parts(jss,i)**0.25))
 !           if(nnp.eq.1)write(6,*)'Force acting on particle FS', FS, j+1
           FP=FG+FD+FS+FL
 !           if(j.eq.1) real_parts(jgw,i)=FP
@@ -1608,11 +1624,23 @@ c-----------------------------------------------------------------------
        end 
 
 c-------------------------------------------------------------------------
-      subroutine lift_var 
+      subroutine lift_var (real_parts,num_reals,integer_parts
+     $   ,num_ints,num_total)
       include 'SIZE'
       include 'TOTAL'
       include 'PARTICLES' 
+      integer num_reals,num_ints,num_total
+      real    real_parts(num_reals,num_total)
+      integer integer_parts(num_ints,num_total)
+
+      !Interpolate Stress tensor
+      call particle_interp_local (real_parts,num_reals,integer_parts
+     &   ,num_ints,num_total,dsij,jds,2*ndim)
       
+      !Interpolate SijSji 
+      call particle_interp_local (real_parts,num_reals,integer_parts
+     &   ,num_ints,num_total,dsij,jss,1)
+
       return
       end  
 c-------------------------------------------------------------------------
