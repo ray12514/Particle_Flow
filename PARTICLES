@@ -93,10 +93,10 @@
       real w_grad(lx1*ly1*lz1*lelv,ldim)
       common /uvw_grad/ u_grad,v_grad,w_grad 
       !These variables are for the postprocessing stats
-      real STATS(lx1*ly1*lz1*lelv,44)
-      real CSTATS(lx1*ly1*lz1*lelv,80)
-      common /TURB_STATS/ STATS,CSTATS
-      integer n_var,n_st_f
-      parameter (n_var=44)
-      parameter (n_st_f=11) 
+!      real STATS(lx1*ly1*lz1*lelv,44)
+!      real CSTATS(lx1*ly1*lz1*lelv,80)
+!      common /TURB_STATS/ STATS,CSTATS
+!      integer n_var,n_st_f
+!      parameter (n_var=44)
+!      parameter (n_st_f=11) 
 

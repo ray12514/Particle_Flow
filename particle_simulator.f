@@ -15,9 +15,9 @@ c     Minimal value of nr = 14*ndim + 1
 !       common /ptpointers/ jrc,jpt,je0,jps,jai,jgn,nai,jr,jd,jx,jy,jz,jx1
 !      $               ,jx2,jx3,ja0,ja1,ja2,ja3,jv0,jv1,jv2,jv3
 !      $         ,ju0,ju1,ju2,ju3,jgu,jgv,jgw,jwd,jwn,jpd,jrh,jdt,jar,nar
-      jrc = 1 ! Pointer to findpts return code
-      jpt = 2 ! Pointer to findpts return processor id
-      je0 = 3 ! Pointer to findpts return element id
+      jrc = 1 ! Pointer to fgslib_findpts return code
+      jpt = 2 ! Pointer to fgslib_findpts return processor id
+      je0 = 3 ! Pointer to fgslib_findpts return element id
       jps = 4 ! Pointer to proc id for data swap
       jai = 5 ! Pointer to auxiliary integers
       jgn = 6 ! Pointer to group number
@@ -27,11 +27,11 @@ c     Minimal value of nr = 14*ndim + 1
       nai = ni - (jcp-1)  ! Number of auxiliary integers
       if (nai.le.0) call exitti('Error in nai:$',ni)
 
-      jr  = 1         ! Pointer to findpts return rst variables
-      jd  = jr + ndim ! Pointer to findpts return distance
-      jx  = jd + 1    ! Pointer to findpts input x value
-      jy  = jx + 1    ! Pointer to findpts input y value
-      jz  = jy + 1    ! Pointer to findpts input z value
+      jr  = 1         ! Pointer to fgslib_findpts return rst variables
+      jd  = jr + ndim ! Pointer to fgslib_findpts return distance
+      jx  = jd + 1    ! Pointer to fgslib_findpts input x value
+      jy  = jx + 1    ! Pointer to fgslib_findpts input y value
+      jz  = jy + 1    ! Pointer to fgslib_findpts input z value
 
       jx1 = jx + ndim ! Pointer to xyz at t^{n-1}
       jx2 = jx1+ ndim ! Pointer to xyz at t^{n-2}
@@ -187,7 +187,7 @@ c
       l  = lcount       ! Index into local particle array
       !Will add a routine to track the particles that are upstream and downstream
       !one hundred total particle tracks
-      nw =200000 !Number of particles per group  
+      nw =200000!Number of particles per group  
 
       do i=1,pgrp
         
@@ -377,8 +377,8 @@ c           Solve for velocity at time t^n
       !!!!!   I need to rewrite all this code 
       !!!!!   so that it is just one big loop 
       !!!!!   that performs all the operations
-      !!!!!   before I make the call to the findpts
-      !!!!!   and crystal router routine
+      !!!!!   before I make the call to the fgslib_findpts
+      !!!!!   and fgslib_crystal router routine
       !!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       do j=0,ndim-1
@@ -573,13 +573,13 @@ c      write(6,*) size(loc_ptsmap),'size of local maps'
         icalld1 = icalld1+1
         tolin  = 1.e-12
         if (wdsize.eq.4) tolin = 1.e-6
-        call crystal_setup (cr_handle,nekcomm,np)
+        call fgslib_crystal_setup (cr_handle,nekcomm,np)
         call intpts_setup_part(tolin,ihandle_local)
 c        call intpts_setup(tolin,ihandle_remote)
       endif
 
-        if(nid.eq.0) write(6,*) 'call findpts'
-         call findpts(ihandle_local,integer_parts(jrc,1),lif,
+        if(nid.eq.0) write(6,*) 'call fgslib_findpts'
+         call fgslib_findpts(ihandle_local,integer_parts(jrc,1),lif,
      &               integer_parts(jpt,1),lif,
      &               integer_parts(je0,1),lif,
      &               real_parts(jr, 1),lrf,
@@ -593,14 +593,14 @@ c        call intpts_setup(tolin,ihandle_remote)
             integer_parts(jps,i) = integer_parts(jpt,i)
          enddo
 !       
-         call crystal_tuple_transfer(cr_handle,num_total,lhis
+         call fgslib_crystal_tuple_transfer(cr_handle,num_total,lhis
      $              , integer_parts,num_ints,partl
      $              ,num_log,real_parts,num_reals,jps)
           
 
 c        Sort by element number - for improved local-eval performance
          
-!          call crystal_tuple_sort    (cr_handle,n 
+!          call fgslib_crystal_tuple_sort    (cr_handle,n 
 !      $              , integer_parts,ni,partl,nl,real_parts,nr,je0,1)
 
 
@@ -634,7 +634,7 @@ c
       bb_t    = 0.1 ! relative size to expand bounding boxes by
 c
       if(nidd.eq.0) write(6,*) 'initializing intpts(), tol=', tol
-      call findpts_setup(ih,nekcomm,npp,ndim,
+      call fgslib_findpts_setup(ih,nekcomm,npp,ndim,
      &                     xm1,ym1,zm1,nx1,ny1,nz1,
      &                     nelt,nxf,nyf,nzf,bb_t,n,n,
      &                     npt_max,tol)
@@ -667,7 +667,7 @@ c      write(6,*) num_pts,'is this the right number of particles?'
           is_out = 1
             iout   = ifld
             is_out = nflds
-          call findpts_eval_local(ihandle_local,
+          call fgslib_findpts_eval_local(ihandle_local,
      &                     loc_r_data(pt+iout-1,1),nrf,
      &                     loc_i_data(je0,1),nif,
      &                     loc_r_data(jr ,1),nrf,num_pts,
@@ -706,7 +706,7 @@ c---------------------------------------------------------------------
       save    icalld
       data    icalld /0/
       
-      integer cl_c
+      integer ntotal
       !!!questions about runtal and cl_up
       logical log,col_temp_l
       logical partl         ! This is a dummy placeholder, used in cr()
@@ -719,23 +719,23 @@ c---------------------------------------------------------------------
       if (icalld.eq.0) then
 
         ifld=1
-        cl_c=0 !maybe this needs to moved outside the if statement
+        
 !         call rzero(wall_area,nelt)
         call rzero(col_temp_r,rc_index*(2*lhis))  
 !         call rzero(col_data_r,rc_index*(2*lhis))  
         call izero(col_temp_i,ic_index*(2*lhis))  
 !         call izero(col_data_i,ic_index*(2*lhis))  
-!         ntotal=nx1*ny1*nz1*nelv
-        call cheap_dist(wrk2,ifld,b)
+        ntotal=nx1*ny1*nz1*nelv
+        call cheap_dist(m1,ifld,bound)
         !call distf(d,ifld,b,dmin,emin,xn,yn,zn) !wall
         !call opcopy(wrk(1,1),wrk(1,2),wrk(1,3),xn,yn,zn)
-        call gradm1(wrk_n(1,1),wrk_n(1,2),wrk_n(1,3),wrk2)
+        call gradm1(wrk_n(1,1),wrk_n(1,2),wrk_n(1,3),m1)
         
         !call copy(wrk2,d,ntotal) !wall distance
-!         call copy(wrk2,m1,ntotal) !wall distance using psuedo
+        call copy(wrk2,m1,ntotal) !wall distance using psuedo
 
-        call crystal_setup (col_handle,nekcomm,np) 
-        call crystal_setup (exit_handle,nekcomm,np)       
+        call fgslib_crystal_setup (col_handle,nekcomm,np) 
+        call fgslib_crystal_setup (exit_handle,nekcomm,np)       
 
         icalld=1
       endif
@@ -777,10 +777,10 @@ c-----------------------------------------------------------------------
       integer integer_parts(num_ints,num_total)
       
       !All variables that belong in this routine
-      real opp_dis,rslt_lngth,col_theta  
+      real opp_dis,rslt_lngth,col_theta,wallpt  
       integer e,f,eg
-      integer cl_c_up,colin,mymax2,dist3d,wallpt
-      real normc
+      integer cl_c_up,colin,mymax2
+      real normc,dist3d
       real prad
       integer e_col,eg_col,jx0
       integer cl_c
@@ -797,7 +797,7 @@ c-----------------------------------------------------------------------
         prad=real_parts(jpd,p_index)*0.5 !Particle radius 
         !Check the wall distance to update for collisions 
         if(real_parts(jwd,p_index).lt.prad) then
-!           write(6,*) 'Particle collision', integer_parts(jai,p_index)
+!            write(6,*) 'Particle collision', integer_parts(jai,p_index)
           cl_c=cl_c + 1 !Count the number of collisions  
           !Coefficient of resitution
           res=e_max*exp(-(e_beta/real_parts(jar,p_index)))
@@ -810,6 +810,7 @@ c-----------------------------------------------------------------------
                                           !just use the coordinate data
 
           normc=real_parts(jx0+colin-1,p_index)!The actual collision position
+!           write(6,*) 'position',(real_parts(jx0+i-1,p_index),i=1,ldim)
 !           wallpt=real_parts(jwn+colin-1,p_index)!Not sure if I need this
 !           write(6,*)'wall position',normc
           !Assign the wall value to the pt.
@@ -817,10 +818,11 @@ c-----------------------------------------------------------------------
           wallpt=abs(normc)-(prad-real_parts(jwd,p_index))
           if(normc.lt.0) wallpt=-wallpt
           real_parts(jx0+colin-1,p_index)=wallpt
+!           write(6,*) 'position2',(real_parts(jx0+i-1,p_index),i=1,ldim)
 !           write(6,*)'actual wall position',wallpt
             !!!! Having some issues here !!!!!!
             !Store collision data 
-            opp_dis=abs(wallpt-real_parts(jx1+colin-1,p_index))
+          opp_dis=abs(wallpt-real_parts(jx1+colin-1,p_index))
           rslt_lngth=dist3d(real_parts(jwn,p_index)
      $      ,real_parts(jwn+1,p_index),real_parts(jwn+2,p_index)
      $      ,real_parts(jx1,p_index),real_parts(jx1+1,p_index)
@@ -1110,7 +1112,7 @@ c-------------------------------------------------------------------------------
 !           col_temp_i(jps,i) = col_temp_i(6,i)
 !         enddo    
                
-!         call crystal_tuple_transfer(col_handle,cl_c,2*lhis
+!         call fgslib_crystal_tuple_transfer(col_handle,cl_c,2*lhis
 !      $       ,col_temp_i,ic_index,col_temp_l,nl,col_temp_r,rc_index,jps)
 !         call copy(col_data_r,col_temp_r,rc_index*cl_c)
 !         call icopy(col_data_i,col_temp_i,ic_index*cl_c)

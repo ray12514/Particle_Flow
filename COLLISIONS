@@ -18,8 +18,8 @@
 	    !!! Index particle collision data positions
       integer rc_index,ic_index
       parameter( rc_index=9, ic_index=6)
-      character*3 b 
-      parameter(b='W  ')
+      character*3 bound 
+      parameter(bound='W  ')
       !!Max value for the coeff. of restitution
       real e_max,e_beta,res ! The maximum res coeff,res 
                             !  parameter,resitution
