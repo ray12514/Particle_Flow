@@ -79,7 +79,7 @@ c----------------------------------------------------------------------
       
 !       include 'CTIMER'
       integer lr,li
-      parameter (lr=26*ldim+1,li=8+1)
+      parameter (lr=27*ldim+1,li=8+1)
       real rpart
       common /rparts/ rpart(lr,lhis)
       integer ipart
@@ -549,7 +549,7 @@ c-----------------------------------------------------------------------
       integer nmax
       parameter(nmax=lhis)
       integer lrf,lif 
-      parameter (lrf=26*ldim+1,lif=8+1)
+      parameter (lrf=27*ldim+1,lif=8+1)
       real               loc_rpts(lrf,lhis),rem_rpts(lrf,lhis)
       common /fptspartr/ loc_rpts,rem_rpts
       integer            loc_ipts(lif,lhis),rem_ipts(lif,lhis)
@@ -1351,7 +1351,7 @@ c-----------------------------------------------------------------------
       integer integer_parts(num_ints,num_total)
       
       integer nnp
-      real visc,rho_f,p_Reynolds,Accel,rho_p,d_ratio428,mat_div
+      real visc,rho_f,p_Reynolds,Accel,rho_p,mat_div
       real cm,g(ldim),cd_r,Stokes,Stokes_mean,FG,FD,FS,FL,FP,Term_v
       integer icalld
       real KK
@@ -1466,14 +1466,14 @@ c-----------------------------------------------------------------------
 !           if(nnp.eq.1)write(6,*)'dvdx',real_parts(jgu+1+k,i) , j+1
 !           if(nnp.eq.1)write(6,*)'dwdx',real_parts(jgu+2+k,i) , j+1
 !           if(nnp.eq.1)write(6,*)'mat_div',mat_div , j+1
-          diju=0.0
-          do h=1,ndim
-            rel_vel=(real_parts(jv0+h-1,i)-real_parts(ju0+h-1,i))
-            diju=diju+dij_cons(h,j+1)*rel_vel
-          enddo
-          FL=2*KK*(visc**.5)*diju
-          FL=FL/(d_ratio*real_parts(jpd,i)*(real_parts(jss,i)**0.25))
-!           if(nnp.eq.1)write(6,*)'Force acting on particle FS', FS, j+1
+!           diju=0.0
+!           do h=1,ndim
+!             rel_vel=(real_parts(jv0+h-1,i)-real_parts(ju0+h-1,i))
+!             diju=diju+dij_cons(h,j+1)*rel_vel
+!           enddo
+!           FL=2*KK*(visc**.5)*diju
+!           FL=FL/(d_ratio*real_parts(jpd,i)*(real_parts(jss,i)**0.25))
+! !           if(nnp.eq.1)write(6,*)'Force acting on particle FS', FS, j+1
           FP=FG+FD+FS+FL
 !           if(j.eq.1) real_parts(jgw,i)=FP
 !           if(nnp.eq.1)write(6,*)'Total force FP', FP, j+1
@@ -1579,7 +1579,8 @@ c-----------------------------------------------------------------------
       integer integer_parts(num_ints,num_total)
       real  wrk1(lx1*ly1*lz1*lelt,ldim)
       real u1tmp(ldim,num_total),u2tmp(ldim,num_total)
-      integer i,j,v,v1,v2  
+      integer i,j
+      real v,v1,v2  
        
        !t^n-1
        call opcopy(wrk1(1,1),wrk1(1,2),wrk1(1,3),VXLAG(1,1,1,1,1)
