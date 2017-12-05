@@ -349,7 +349,7 @@ c           Solve for velocity at time t^n
       !!!Don't really need the old fluid velocity data 
       !!!or the particle data, and I only need to
       !!!store up t^-2 for AB3
-      call NewForce (real_parts,num_reals,integer_parts
+      call Force (real_parts,num_reals,integer_parts
      $   ,num_ints,num_total)
 !!!!Used for the Exact solution !!!!!!!!!!!!!
 !       if (excalld.eq.0) then 
@@ -1339,7 +1339,7 @@ c----------------------------------------------------------------------
       return
       END
 c----------------------------------------------------------------------- 
-      subroutine NewForce (real_parts,num_reals,integer_parts
+      subroutine Force (real_parts,num_reals,integer_parts
      $   ,num_ints,num_total)
       implicit none
       include 'SIZE'
@@ -1354,10 +1354,10 @@ c-----------------------------------------------------------------------
       real visc,rho_f,p_Reynolds,Accel,rho_p,mat_div
       real cm,g(ldim),cd_r,Stokes,Stokes_mean,FG,FD,FS,FL,FP,Term_v
       integer icalld
-      real KK
-      save icalld,KK
+      real vrel(3),crsscrl
+      save icalld
       data icalld /0/
-      save g,rho_f,cm
+      save g,rho_f,cm,vrel
       data g /0.0,-9.81,0.0/
 !       data g /0.0,0.0,0.0/
       data cm /0.5/
@@ -1368,10 +1368,10 @@ c-----------------------------------------------------------------------
      $               ,5,6,4/
       real rel_vel,diju
       real d_ratio,dvdt,g_mag,pv,u_mag,v_mag,vu_mag,coeff_D
-      integer i,j,k
+      integer i,j,k,ii
 
       visc=param(02)
-      KK=2.594
+!       KK=2.594
       pi    = 4.*atan(1.0)
       rho_f=param(01)
       
@@ -1383,20 +1383,25 @@ c-----------------------------------------------------------------------
      &   integer_parts,num_ints,num_total)
       
       do i=1,num_total
-      k=0
-      FG=0.0  
-      FD=FG
-      FS=FG
-      FL=FS
-      FP=FL
-      v_mag=sqrt((real_parts(jv0,i))**2+(real_parts(jv0+1,i)**2)
+        k=0
+        crsscrl=0
+        FG=0.0  
+        FD=FG
+        FS=FG
+        FL=FS
+        FP=FL
+        v_mag=sqrt((real_parts(jv0,i))**2+(real_parts(jv0+1,i)**2)
      &   +(real_parts(jv0+2,i)**2))
-      u_mag=sqrt((real_parts(ju0,i)**2)+(real_parts(ju0+1,i)**2)
+        u_mag=sqrt((real_parts(ju0,i)**2)+(real_parts(ju0+1,i)**2)
      &   +(real_parts(ju0+2,i)**2))
+        
+        vu_mag=0
+        do ii=0,ndim-1
+          vrel(ii+1)=(real_parts(jv0+ii,i)-real_parts(ju0+ii,i))
+          vu_mag=vu_mag+vrel(ii+1) 
+        enddo
+        vu_mag=sqrt(vu_mag)**2
 
-      vu_mag=sqrt((real_parts(jv0,i)-(real_parts(ju0,i)))**2
-     &       +((real_parts(jv0+1,i)-real_parts(ju0+1,i))**2)
-     &       +(real_parts(jv0+2,i)-real_parts(ju0+2,i))**2) 
         p_Reynolds=abs(vu_mag)*(real_parts(jpd,i))
         p_Reynolds=p_Reynolds/visc
              
@@ -1466,14 +1471,18 @@ c-----------------------------------------------------------------------
 !           if(nnp.eq.1)write(6,*)'dvdx',real_parts(jgu+1+k,i) , j+1
 !           if(nnp.eq.1)write(6,*)'dwdx',real_parts(jgu+2+k,i) , j+1
 !           if(nnp.eq.1)write(6,*)'mat_div',mat_div , j+1
-!           diju=0.0
-!           do h=1,ndim
-!             rel_vel=(real_parts(jv0+h-1,i)-real_parts(ju0+h-1,i))
-!             diju=diju+dij_cons(h,j+1)*rel_vel
-!           enddo
-!           FL=2*KK*(visc**.5)*diju
-!           FL=FL/(d_ratio*real_parts(jpd,i)*(real_parts(jss,i)**0.25))
-! !           if(nnp.eq.1)write(6,*)'Force acting on particle FS', FS, j+1
+!           if(nnp.eq.1)write(6,*)'Force acting on particle FS', FS, j+1
+          
+          crsscrl=vrel(1)*real_parts(jgu+k,i)
+     &                    +vrel(2)*real_parts(jgv+k,i)
+     &                    + vrel(3)*real_parts(jgw+k,i)
+
+          crsscrl=crsscrl-(vrel(1)*real_parts(jgu+k,i)+
+     &    vrel(2)*real_parts(jgu+1+k,i)+vrel(3)*real_parts(jgu+2+k,i))
+          
+
+          FL=1.6*real_parts(jpd,i)**2*(visc*rho_f)*crsscrl
+          FL=FL/sqrt(abs(real_parts(jds+j,i))) 
           FP=FG+FD+FS+FL
 !           if(j.eq.1) real_parts(jgw,i)=FP
 !           if(nnp.eq.1)write(6,*)'Total force FP', FP, j+1
@@ -1634,13 +1643,13 @@ c-------------------------------------------------------------------------
       real    real_parts(num_reals,num_total)
       integer integer_parts(num_ints,num_total)
 
-      !Interpolate Stress tensor
+      !curl of the velocity field 
       call particle_interp_local (real_parts,num_reals,integer_parts
-     &   ,num_ints,num_total,dsij,jds,2*ndim)
+     &   ,num_ints,num_total,dcrl,jds,ndim)
       
-      !Interpolate SijSji 
-      call particle_interp_local (real_parts,num_reals,integer_parts
-     &   ,num_ints,num_total,dsij,jss,1)
+!       !Interpolate SijSji 
+!       call particle_interp_local (real_parts,num_reals,integer_parts
+!      &   ,num_ints,num_total,dsij,jss,1)
 
       return
       end  

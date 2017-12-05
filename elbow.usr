@@ -367,7 +367,7 @@ c-----------------------------------------------------------------------
       call set_inflow
       call shear
       call get_gradient
-      call get_sij
+!       call get_sij
       call avg_all_flow
       return
       end   
@@ -377,15 +377,16 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       include 'PARTICLES'
-      integer icalld 
+      integer icalld,ntot 
       save    icalld
       data    icalld /0/
-
+      ntot=nx1*ny1*nz1*nelv
       if (icalld.eq.0) then
         icalld = 1  
         call rzero(u_grad,nx1*ny1*nz1*nelv*ndim)
         call rzero(v_grad,nx1*ny1*nz1*nelv*ndim)
         call rzero(w_grad,nx1*ny1*nz1*nelv*ndim)
+        call rzero(dcrl,nx1*ny1*nz1*nelv*ndim)
       endif
       !grad U
       call gradm1(u_grad(1,1),u_grad(1,2),u_grad(1,3),vx)
@@ -393,81 +394,97 @@ c-----------------------------------------------------------------------
       call gradm1(v_grad(1,1),v_grad(1,2),v_grad(1,3),vy)
       !grad W
       call gradm1(w_grad(1,1),w_grad(1,2),w_grad(1,3),vz)
-
+      
+      call mycross(dcrl(1,1),dcrl(1,2),dcrl(1,3),
+     $     u_grad(1,1),v_grad(1,2),w_grad(1,3),ntot)   
       return 
       end
 c------------------------------------------------------------------------
-      subroutine get_sij ()
-      implicit none
-      include 'SIZE'
-      include 'TOTAL'
-      include 'PARTICLES'
-      real sij_cons
-      real tempr(lx1,ly1,lz1,lelv)
-      integer icalld,ntot 
-      save    icalld
-      data    icalld /0/
-      ntot=nx1*ny1*nz1*nelv
-      sij_cons=0.5
-      if (icalld.eq.0) then
-        icalld = 1
-        call rzero(tempr,ntot)  
-        call rzero(dsij,ntot*6)
-        call rzero(sijsji,ntot)
-      endif
-                    ! 0.5(du/dx + du/dx)
-                    !S11
-      call add3s12(dsij(1,1),u_grad(1,1),u_grad(1,1),
-     $   sij_cons,sij_cons,ntot)
-                    ! 0.5(dv/dy + dv/dy)
-                    !S22
-      call add3s12(dsij(1,2),v_grad(1,1),v_grad(1,1),
-     $   sij_cons,sij_cons,ntot)
-                    ! 0.5(dw/dz + dw/dz)
-                    !S33
-      call add3s12(dsij(1,3),w_grad(1,1),w_grad(1,1),
-     $   sij_cons,sij_cons,ntot)
-                    ! 0.5(du/dz + dv/dy)
-                    !S12
-      call add3s12(dsij(1,4),u_grad(1,1),v_grad(1,1),
-     $   sij_cons,sij_cons,ntot)
-                    ! 0.5(du/dz + dw/dx)
-                    !S13     
-      call add3s12(dsij(1,5),u_grad(1,1),w_grad(1,1),
-     $   sij_cons,sij_cons,ntot)
-                    ! 0.5(dv/dz + dw/dy)
-                    !S23
-      call add3s12(dsij(1,6),v_grad(1,1),w_grad(1,1),
-     $   sij_cons,sij_cons,ntot) 
+      subroutine mycross (u1,u2,u3,w1,w2,w3,n)
+!       implicit none  
+      DIMENSION u1(1),u2(1),u3(1)
+      DIMENSION w1(1),w2(1),w3(1)
       
-                !SijSji=S11**2+
-      call Xaddcol3(sijsji,dsij(1,1),dsij(1,1),ntot)
-                !S22**2+
-      call Xaddcol3(sijsji,dsij(1,2),dsij(1,2),ntot)
-                !S33**2+
-      call Xaddcol3(sijsji,dsij(1,3),dsij(1,3),ntot)
-                !2*S12**2+
-      call csqr(tempr,dsij(1,4),2.0,ntot)
-      call add2(sijsji,tempr,ntot)
-                !2*S13**2+
-               
-      call csqr(tempr,dsij(1,5),2.0,ntot)
-      call add2(sijsji,tempr,ntot)
-                !2*S23**2
-      call csqr(tempr,dsij(1,6),2.0,ntot)
-      call add2(sijsji,tempr,ntot)
-
-      return
-      end
-c-----------------------------------------------------------------
-      subroutine csqr(a,b,c,n)
-      real a(1),b(1),c
-      integer n
       do i=1,n
-         a(i)=c*b(i)**2
+           u1(i)=w2(i)-w3(i)
+           u3(i)=w1(i)-w3(i)
+           u2(i)=w1(i)-w2(i)
       enddo
 
       return
       end
+c------------------------------------------------------------------------
+!       subroutine get_sij ()
+!       implicit none
+!       include 'SIZE'
+!       include 'TOTAL'
+!       include 'PARTICLES'
+!       real sij_cons
+!       real tempr(lx1,ly1,lz1,lelv)
+!       integer icalld,ntot 
+!       save    icalld
+!       data    icalld /0/
+!       ntot=nx1*ny1*nz1*nelv
+!       sij_cons=0.5
+!       if (icalld.eq.0) then
+!         icalld = 1
+!         call rzero(tempr,ntot)  
+!         call rzero(dsij,ntot*6)
+!         call rzero(sijsji,ntot)
+!       endif
+!                     ! 0.5(du/dx + du/dx)
+!                     !S11
+!       call add3s12(dsij(1,1),u_grad(1,1),u_grad(1,1),
+!      $   sij_cons,sij_cons,ntot)
+!                     ! 0.5(dv/dy + dv/dy)
+!                     !S22
+!       call add3s12(dsij(1,2),v_grad(1,1),v_grad(1,1),
+!      $   sij_cons,sij_cons,ntot)
+!                     ! 0.5(dw/dz + dw/dz)
+!                     !S33
+!       call add3s12(dsij(1,3),w_grad(1,1),w_grad(1,1),
+!      $   sij_cons,sij_cons,ntot)
+!                     ! 0.5(du/dz + dv/dy)
+!                     !S12
+!       call add3s12(dsij(1,4),u_grad(1,1),v_grad(1,1),
+!      $   sij_cons,sij_cons,ntot)
+!                     ! 0.5(du/dz + dw/dx)
+!                     !S13     
+!       call add3s12(dsij(1,5),u_grad(1,1),w_grad(1,1),
+!      $   sij_cons,sij_cons,ntot)
+!                     ! 0.5(dv/dz + dw/dy)
+!                     !S23
+!       call add3s12(dsij(1,6),v_grad(1,1),w_grad(1,1),
+!      $   sij_cons,sij_cons,ntot) 
+      
+!                 !SijSji=S11**2+
+!       call Xaddcol3(sijsji,dsij(1,1),dsij(1,1),ntot)
+!                 !S22**2+
+!       call Xaddcol3(sijsji,dsij(1,2),dsij(1,2),ntot)
+!                 !S33**2+
+!       call Xaddcol3(sijsji,dsij(1,3),dsij(1,3),ntot)
+!                 !2*S12**2+
+!       call csqr(tempr,dsij(1,4),2.0,ntot)
+!       call add2(sijsji,tempr,ntot)
+!                 !2*S13**2+
+               
+!       call csqr(tempr,dsij(1,5),2.0,ntot)
+!       call add2(sijsji,tempr,ntot)
+!                 !2*S23**2
+!       call csqr(tempr,dsij(1,6),2.0,ntot)
+!       call add2(sijsji,tempr,ntot)
+
+!       return
+!       end
+c-----------------------------------------------------------------
+!       subroutine csqr(a,b,c,n)
+!       real a(1),b(1),c
+!       integer n
+!       do i=1,n
+!          a(i)=c*b(i)**2
+!       enddo
+
+!       return
+!       end
 c-----------------------------------------------------------------------
 
