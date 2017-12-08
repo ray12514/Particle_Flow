@@ -805,7 +805,7 @@ c-----------------------------------------------------------------------
           !Coefficient of resitution
           res=e_max*exp(-(e_beta/real_parts(jar,p_index)))
 
-          res=2
+          res=1
           !Determine which wall the paricle hit (1,2,3)
           colin=mymax2(real_parts(jwn:jwn+ndim-1,p_index),ndim)
 !           write(6,*) 'Face', colin
@@ -1504,8 +1504,8 @@ c-----------------------------------------------------------------------
 
           if(nnp.eq.1)write(6,*)'Force acting on particle FL', FL, j+1
           
-!           FP=FG+FD+FS+FL
-          FP=FG
+          FP=FG+FD+FS+FL
+!           FP=FG
 !           if(j.eq.1) real_parts(jgw,i)=FP
           if(nnp.eq.1)write(6,*)'Total force FP', FP, j+1
 
