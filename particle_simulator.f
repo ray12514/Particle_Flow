@@ -223,7 +223,7 @@ c
               real_parts(jy,l) = ystart + dumy*(ylen -partdiam(i))   ! Particle Initial position 
               real_parts(jz,l) = zstart + dumz*(zlen -partdiam(i))   !
               real_parts(jx,l) =-6.0
-              real_parts(jy,l) =-0.5+partdiam(i)
+              real_parts(jy,l) =-0.5+partdiam(i)/2
 !                if(j.eq.1)   real_parts(jx,l) = -5.5
 !                if(j.eq.2)   real_parts(jy,l) = -1.5
               real_parts(jz,l) = 0.0
@@ -817,7 +817,7 @@ c-----------------------------------------------------------------------
           normc=real_parts(jx0+colin-1,p_index)!The actual collision position
 !           write(6,*) 'position',(real_parts(jx0+i-1,p_index),i=1,ldim)
 !           wallpt=real_parts(jwn+colin-1,p_index)!Not sure if I need this
-!           write(6,*)'wall position',normc
+          write(6,*)'wall position',normc
           !Assign the wall value to the pt.
           !This needs some reworking
           diff=prad-real_parts(jwd,p_index)
