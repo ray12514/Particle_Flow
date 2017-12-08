@@ -822,12 +822,12 @@ c-----------------------------------------------------------------------
           !This needs some reworking
           diff=prad-real_parts(jwd,p_index)
           !!make this dependent on particle size if pd=1e-3 then use 1e4
-          normc_check=floor(abs(normc)*1e4)/1e4
+          normc_check=ceiling(abs(normc)*10)/10
           write(6,*)normc_check,'normc_check'
 !           if (diff.lt.0) then 
 !           wallpt=abs(normc_check)-abs(diff)
 !           else
-          wallpt=abs(normc_check)
+          wallpt=abs(normc_check)-abs(prad)
 !           endif
           wallpt=sign(wallpt,normc)
 !           if(normc.lt.0) wallpt=-wallpt
