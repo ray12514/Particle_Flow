@@ -368,7 +368,7 @@ c-----------------------------------------------------------------------
       call shear
       call get_gradient
 !       call get_sij
-      call avg_all_flow
+!       call avg_all_flow
       return
       end   
 c-----------------------------------------------------------------------     

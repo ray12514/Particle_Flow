@@ -35,7 +35,7 @@ USR="flow_stats.o turbulent_inlet.o particle_simulator.o"
 #MPI=0
 
 # profiling (default 1)
-#PROFILING=0
+PROFILING=0
 
 # VisIt in situ (default 0)
 #VISIT=1

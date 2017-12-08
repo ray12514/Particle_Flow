@@ -187,7 +187,7 @@ c
       l  = lcount       ! Index into local particle array
       !Will add a routine to track the particles that are upstream and downstream
       !one hundred total particle tracks
-      nw =200000!Number of particles per group  
+      nw = 1 !Number of particles per group  
 
       do i=1,pgrp
         
@@ -222,11 +222,11 @@ c
               real_parts(jx,l) = xstart + dumx*(xlen -partdiam(i))  
               real_parts(jy,l) = ystart + dumy*(ylen -partdiam(i))   ! Particle Initial position 
               real_parts(jz,l) = zstart + dumz*(zlen -partdiam(i))   !
-!                real_parts(jx,l) =0.1
-!                real_parts(jy,l) =0.1
+               real_parts(jx,l) =-6.0
+               real_parts(jy,l) =-0.5+partdiam(i)/2
 !                if(j.eq.1)   real_parts(jx,l) = -5.5
 !                if(j.eq.2)   real_parts(jy,l) = -1.5
-!                real_parts(jz,l) = 0.1
+               real_parts(jz,l) = 0.0
               real_parts(jrh,l)=partdens(i)   !Particle density
               real_parts(jpd,l)=partdiam(i)!Particle diameter
               real_parts(jar,l)= 0.0  
@@ -262,7 +262,8 @@ c
             real_parts(jv0+i,j)=real_parts(ju0+i,j) !velocity to fluid velocity                              
           enddo
         enddo
-       
+       call Force (real_parts,num_reals,integer_parts
+     $   ,num_ints,num_total)
        call particle_collect (real_parts,num_reals,integer_parts
      $   ,num_ints,num_total)
 
@@ -418,7 +419,6 @@ c           Solve for velocity at time t^n
      $              dt*(c(1)*real_parts(jv1+j,i)
      $          + c(2)*real_parts(jv2+j,i)
      $        + c(3)*real_parts(jv3+j,i))
-          
         enddo 
       enddo
 !        write(6,*) alpha(1),alpha(2),alpha(3)    
@@ -557,7 +557,8 @@ c-----------------------------------------------------------------------
       integer            n_loc_pts,n_rem_pts 
       common /fptsparti/ loc_ipts,rem_ipts,n_loc_pts,n_rem_pts 
       common /mapss/     loc_ptsmap,rem_ptsmap
-      integer ntot,nxyz,num_log,tolin
+      integer ntot,nxyz,num_log
+      real tolin
       integer icalld1,wrk_n,i
       save    icalld1
       data    icalld1 /0/
@@ -620,10 +621,11 @@ c           is smaller than tolin
 c     
       include 'SIZE'
       include 'GEOM'
-      integer tolin,ih
+      real tolin,tol
+      integer ih
       integer nidd,npp,nekcomm,nekgroup,nekreal 
       common /nekmpi/ nidd,npp,nekcomm,nekgroup,nekreal
-      integer tol,n,npt_max,nxf,nyf,nzf,bb_t
+      integer n,npt_max,nxf,nyf,nzf,bb_t
       tol = tolin
       if (tolin.lt.0) tol = 1e-13 ! default tolerance 
 
@@ -781,7 +783,7 @@ c-----------------------------------------------------------------------
       real opp_dis,rslt_lngth,col_theta,wallpt  
       integer e,f,eg
       integer cl_c_up,colin,mymax2
-      real normc,dist3d
+      real normc,normc_check,dist3d,diff
       real prad
       integer e_col,eg_col,jx0
       integer cl_c
@@ -797,15 +799,17 @@ c-----------------------------------------------------------------------
         
         prad=real_parts(jpd,p_index)*0.5 !Particle radius 
         !Check the wall distance to update for collisions 
-        if(real_parts(jwd,p_index).lt.prad) then
+        if(real_parts(jwd,p_index)+1e-12.le.prad) then
 !            write(6,*) 'Particle collision', integer_parts(jai,p_index)
           cl_c=cl_c + 1 !Count the number of collisions  
           !Coefficient of resitution
           res=e_max*exp(-(e_beta/real_parts(jar,p_index)))
-!           res=1
+
+          res=2
           !Determine which wall the paricle hit (1,2,3)
           colin=mymax2(real_parts(jwn:jwn+ndim-1,p_index),ndim)
 !           write(6,*) 'Face', colin
+          write(6,*) res,colin,'resitution and face'
           !Determine the face numbers
 !           ee=integer_parts(je0,p_index)+1 !This needs to be tested, maybe
                                           !just use the coordinate data
@@ -816,9 +820,23 @@ c-----------------------------------------------------------------------
 !           write(6,*)'wall position',normc
           !Assign the wall value to the pt.
           !This needs some reworking
-          wallpt=abs(normc)-(prad-real_parts(jwd,p_index))
-          if(normc.lt.0) wallpt=-wallpt
+          diff=prad-real_parts(jwd,p_index)
+          !!make this dependent on particle size if pd=1e-3 then use 1e4
+          normc_check=floor(abs(normc)*1e4)/1e4
+          write(6,*)normc_check,'normc_check'
+          if (diff.lt.0) then 
+          wallpt=abs(normc_check)-abs(diff)
+          else
+          wallpt=abs(normc_check)
+          endif
+          wallpt=sign(wallpt,normc)
+!           if(normc.lt.0) wallpt=-wallpt
+           write(6,*) real_parts(jx0+colin-1,p_index),'actualpt'
+           write(6,*) real_parts(jwd,p_index),'distance'
+           write(6,*) abs(prad-real_parts(jwd,p_index)),'diff'
+
           real_parts(jx0+colin-1,p_index)=wallpt
+          write(6,*) wallpt,'wallpt' 
 !           write(6,*) 'position2',(real_parts(jx0+i-1,p_index),i=1,ldim)
 !           write(6,*)'actual wall position',wallpt
             !!!! Having some issues here !!!!!!
@@ -850,7 +868,7 @@ c-----------------------------------------------------------------------
             col_temp_i(4,cl_c)=colin !Now the coord direction ! Collision ID update after transfer
             col_temp_i(5,cl_c)=nid ! real procs number
 !             col_temp_i(6,cl_c)=new_nid ! collection procs number
-!           write(6,*)'old vel',real_parts(jv0+colin-1,p_index)
+          write(6,*)'old vel',real_parts(jv0+colin-1,p_index)
             !!!Update the velocity
             real_parts(jv0+colin-1,p_index)=
      $     -res*real_parts(jv0+colin-1,p_index)
@@ -868,7 +886,7 @@ c-----------------------------------------------------------------------
             real_parts(ja3+colin-1,p_index)=
      $     -real_parts(ja3+colin-1,p_index)
 
-!           write(6,*)'new vel',real_parts(jv0+colin-1,p_index)
+           write(6,*)'new vel',real_parts(jv0+colin-1,p_index)
            endif
       
       if (cl_c.eq.2*lhis.or.lastep.eq.1) then    
@@ -894,8 +912,8 @@ c-------------------------------------------------------------------------------
       integer ee
       real eul_rpart,lag_rpart
       integer eul_ipart,lag_ipart
-      common /euler_lagrang_stats_r/  eul_rpart(24*ldim+3,lhis),
-     $                                lag_rpart(24*ldim+3,lhis)    
+      common /euler_lagrang_stats_r/  eul_rpart(27*ldim+1,lhis),
+     $                                lag_rpart(27*ldim+1,lhis)    
       common /eulerian__lagrang_stats_i/  eul_ipart(9,lhis),
      $                                    lag_ipart(9,lhis)
       integer eul_out,lag_out 
@@ -1275,8 +1293,8 @@ c----------------------------------------------------------------------
       data    icalld  /0/
       real c(3)
       if (.not.intpart) icalld=2  ! For restart
-!        if(nid.eq.0) write(6,*) icalld, 'AB3 Coefficients' 
-      if (icalld.eq.0) then      ! AB1
+! !        if(nid.eq.0) write(6,*) icalld, 'AB3 Coefficients' 
+      if (icalld.eq.0) then      ! AB1(Euler Method)
          c(1) = 1.
          c(2) = 0.
          c(3) = 0.
@@ -1354,18 +1372,18 @@ c-----------------------------------------------------------------------
       real visc,rho_f,p_Reynolds,Accel,rho_p,mat_div
       real cm,g(ldim),cd_r,Stokes,Stokes_mean,FG,FD,FS,FL,FP,Term_v
       integer icalld
-      real vrel(3),crsscrl
+      real vrel(ldim),crsscrl
       save icalld
       data icalld /0/
       save g,rho_f,cm,vrel
       data g /0.0,-9.81,0.0/
 !       data g /0.0,0.0,0.0/
       data cm /0.5/
-      integer dij_cons(3,3),h
-      save dij_cons 
-      data dij_cons / 1,2,5
-     $               ,4,2,6
-     $               ,5,6,4/
+!       integer dij_cons(3,3),h
+!       save dij_cons 
+!       data dij_cons / 1,2,5
+!      $               ,4,2,6
+!      $               ,5,6,4/
       real rel_vel,diju
       real d_ratio,dvdt,g_mag,pv,u_mag,v_mag,vu_mag,coeff_D
       integer i,j,k,ii
@@ -1398,9 +1416,9 @@ c-----------------------------------------------------------------------
         vu_mag=0
         do ii=0,ndim-1
           vrel(ii+1)=(real_parts(jv0+ii,i)-real_parts(ju0+ii,i))
-          vu_mag=vu_mag+vrel(ii+1) 
+          vu_mag=vu_mag+(vrel(ii+1)**2) 
         enddo
-        vu_mag=sqrt(vu_mag)**2
+        vu_mag=sqrt(vu_mag)
 
         p_Reynolds=abs(vu_mag)*(real_parts(jpd,i))
         p_Reynolds=p_Reynolds/visc
@@ -1429,38 +1447,38 @@ c-----------------------------------------------------------------------
 !             Stokes_ex(i)=Stokes
 !           endif    
 !         
-!          nnp=integer_parts(jai,i)
-!         if(nnp.eq.1)write(6,*)'Fluid viscosity',visc 
-!         if(nnp.eq.1)write(6,*)'Particle diameter',real_parts(jpd,i)
-!         if(nnp.eq.1)write(6,*)'Velocity relative:',vu_mag
-!         if(nnp.eq.1)write(6,*)'velocity P:',v_mag
-!         if(nnp.eq.1)write(6,*)'velocity px :',real_parts(jv0,i)
-!         if(nnp.eq.1)write(6,*)'velocity py :',real_parts(jv0+1,i)
-!         if(nnp.eq.1)write(6,*)'velocity pz :',real_parts(jv0+2,i)
-!         if(nnp.eq.1)write(6,*)'velocity F :',u_mag
-!         if(nnp.eq.1)write(6,*)'velocity fx :',real_parts(ju0,i)
-!         if(nnp.eq.1)write(6,*)'velocity fy :',real_parts(ju0+1,i)
-!         if(nnp.eq.1)write(6,*)'velocity fz :',real_parts(ju0+2,i)
+         nnp=integer_parts(jai,i)
+        if(nnp.eq.1)write(6,*)'Fluid viscosity',visc 
+        if(nnp.eq.1)write(6,*)'Particle diameter',real_parts(jpd,i)
+        if(nnp.eq.1)write(6,*)'Velocity relative:',vu_mag
+        if(nnp.eq.1)write(6,*)'velocity P:',v_mag
+        if(nnp.eq.1)write(6,*)'velocity px :',real_parts(jv0,i)
+        if(nnp.eq.1)write(6,*)'velocity py :',real_parts(jv0+1,i)
+        if(nnp.eq.1)write(6,*)'velocity pz :',real_parts(jv0+2,i)
+        if(nnp.eq.1)write(6,*)'velocity F :',u_mag
+        if(nnp.eq.1)write(6,*)'velocity fx :',real_parts(ju0,i)
+        if(nnp.eq.1)write(6,*)'velocity fy :',real_parts(ju0+1,i)
+        if(nnp.eq.1)write(6,*)'velocity fz :',real_parts(ju0+2,i)
 
-!         if(nnp.eq.1)write(6,*)'Particle Reynolds is :',p_Reynolds  
-!         if(nnp.eq.1)write(6,*)'Particle volume :',pv   
-!         if(nnp.eq.1)write(6,*)'Particle density is :',rho_p 
-!         if(nnp.eq.1)write(6,*)'Particle density ratio is :',d_ratio
-!         if(nnp.eq.1)write(6,*)'CD :',cd_r 
-!         if(nnp.eq.1)write(6,*) 'Stokes_mean number: ',Stokes_mean
-!         if(nnp.eq.1)write(6,*) 'Stokes number: ',Stokes
-!         if(nnp.eq.1)write(6,*) 'Term_velocity',Term_v
+        if(nnp.eq.1)write(6,*)'Particle Reynolds is :',p_Reynolds  
+        if(nnp.eq.1)write(6,*)'Particle volume :',pv   
+        if(nnp.eq.1)write(6,*)'Particle density is :',rho_p 
+        if(nnp.eq.1)write(6,*)'Particle density ratio is :',d_ratio
+        if(nnp.eq.1)write(6,*)'CD :',cd_r 
+        if(nnp.eq.1)write(6,*) 'Stokes_mean number: ',Stokes_mean
+        if(nnp.eq.1)write(6,*) 'Stokes number: ',Stokes
+        if(nnp.eq.1)write(6,*) 'Term_velocity',Term_v
 !         if(nnp.eq.1)write(6,*) 'Term_velocity_ex',Term_v_ex
         do j=0,ndim-1 
           FG=pv*g(j+1)*(rho_p - rho_f)
-!           if(nnp.eq.1)write(6,*)'Force acting on particle FG', FG, j+1 
+          if(nnp.eq.1)write(6,*)'Force acting on particle FG', FG, j+1 
           FD=-(real_parts(jpd,i)**2)*rho_f*cd_r*(1./8.0)
           FD= pi*FD*(abs(real_parts(jv0+j,i)-real_parts(ju0+j,i))
      &           *(real_parts(jv0+j,i)-real_parts(ju0+j,i)))
 !           if(j.eq.1) real_parts(jgu,i)=FD
 !           if(j.eq.1) real_parts(jgv,i)=FG
 
-!           if(nnp.eq.1)write(6,*)'Force acting on particle FD', FD, j+1
+          if(nnp.eq.1)write(6,*)'Force acting on particle FD', FD, j+1
           dvdt=real_parts(jdt+j,i)
           mat_div=dvdt+real_parts(ju0,i)*real_parts(jgu+k,i)
      &         + real_parts(ju0+1,i)*real_parts(jgu+1+k,i)
@@ -1471,7 +1489,7 @@ c-----------------------------------------------------------------------
 !           if(nnp.eq.1)write(6,*)'dvdx',real_parts(jgu+1+k,i) , j+1
 !           if(nnp.eq.1)write(6,*)'dwdx',real_parts(jgu+2+k,i) , j+1
 !           if(nnp.eq.1)write(6,*)'mat_div',mat_div , j+1
-!           if(nnp.eq.1)write(6,*)'Force acting on particle FS', FS, j+1
+          if(nnp.eq.1)write(6,*)'Force acting on particle FS', FS, j+1
           
           crsscrl=vrel(1)*real_parts(jgu+k,i)
      &                    +vrel(2)*real_parts(jgv+k,i)
@@ -1481,16 +1499,20 @@ c-----------------------------------------------------------------------
      &    vrel(2)*real_parts(jgu+1+k,i)+vrel(3)*real_parts(jgu+2+k,i))
           
 
-          FL=1.6*real_parts(jpd,i)**2*(visc*rho_f)*crsscrl
+          FL=1.6*real_parts(jpd,i)**2*((visc*rho_f)**(0.5))*crsscrl
           FL=FL/sqrt(abs(real_parts(jds+j,i))) 
-          FP=FG+FD+FS+FL
+
+          if(nnp.eq.1)write(6,*)'Force acting on particle FL', FL, j+1
+          
+!           FP=FG+FD+FS+FL
+          FP=FG
 !           if(j.eq.1) real_parts(jgw,i)=FP
-!           if(nnp.eq.1)write(6,*)'Total force FP', FP, j+1
+          if(nnp.eq.1)write(6,*)'Total force FP', FP, j+1
 
           Accel=FP/((rho_p+rho_f*cm)*pv)
-!           Accel=FP/((rho_p*pv)*(1+cm/d_ratio))
+!           !!!Accel=FP/((rho_p*pv)*(1+cm/d_ratio))
 
-!           if(nnp.eq.1)write(6,*)'Particle Acceleration',Accel, j+1
+          if(nnp.eq.1)write(6,*)'Particle Acceleration',Accel, j+1
           real_parts(ja0+j,i)=Accel
           k=k+ndim
         enddo
