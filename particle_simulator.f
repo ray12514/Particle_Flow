@@ -222,11 +222,11 @@ c
               real_parts(jx,l) = xstart + dumx*(xlen -partdiam(i))  
               real_parts(jy,l) = ystart + dumy*(ylen -partdiam(i))   ! Particle Initial position 
               real_parts(jz,l) = zstart + dumz*(zlen -partdiam(i))   !
-               real_parts(jx,l) =-6.0
-               real_parts(jy,l) =-0.5+partdiam(i)/2
+              real_parts(jx,l) =-6.0
+              real_parts(jy,l) =-0.5+partdiam(i)
 !                if(j.eq.1)   real_parts(jx,l) = -5.5
 !                if(j.eq.2)   real_parts(jy,l) = -1.5
-               real_parts(jz,l) = 0.0
+              real_parts(jz,l) = 0.0
               real_parts(jrh,l)=partdens(i)   !Particle density
               real_parts(jpd,l)=partdiam(i)!Particle diameter
               real_parts(jar,l)= 0.0  
@@ -824,16 +824,16 @@ c-----------------------------------------------------------------------
           !!make this dependent on particle size if pd=1e-3 then use 1e4
           normc_check=floor(abs(normc)*1e4)/1e4
           write(6,*)normc_check,'normc_check'
-          if (diff.lt.0) then 
-          wallpt=abs(normc_check)-abs(diff)
-          else
+!           if (diff.lt.0) then 
+!           wallpt=abs(normc_check)-abs(diff)
+!           else
           wallpt=abs(normc_check)
-          endif
+!           endif
           wallpt=sign(wallpt,normc)
 !           if(normc.lt.0) wallpt=-wallpt
-           write(6,*) real_parts(jx0+colin-1,p_index),'actualpt'
-           write(6,*) real_parts(jwd,p_index),'distance'
-           write(6,*) abs(prad-real_parts(jwd,p_index)),'diff'
+!            write(6,*) real_parts(jx0+colin-1,p_index),'actualpt'
+!            write(6,*) real_parts(jwd,p_index),'distance'
+!            write(6,*) abs(prad-real_parts(jwd,p_index)),'diff'
 
           real_parts(jx0+colin-1,p_index)=wallpt
           write(6,*) wallpt,'wallpt' 
