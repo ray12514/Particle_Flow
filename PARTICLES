@@ -1,7 +1,7 @@
 !         Variables for the particles
 !
       integer pgrp
-      parameter(pgrp = 1) ! Particle group number
+      parameter(pgrp = 3) ! Particle group number
        integer jrc,jpt,je0,jps,jai,jgn,jcp,jcl,nai,jr,jd,jx,
      $           jy,jz,jx1,jx2,jx3,ja0
      $          ,ja1,ja2,ja3,jv0,jv1,jv2,jv3
