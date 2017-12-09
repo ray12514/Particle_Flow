@@ -168,8 +168,8 @@ c
       real  xdrange(2,3) 
       common /domainrange/ xdrange
       save partdiam,partdens
-      data partdiam /1e-6,1e-3,1e-3/
-      data partdens /1000,2,100/
+      data partdiam /1e-6,1e-4,1e-3/
+      data partdens /2,2,2/
 
       integer lcount,icount
       save    lcount,icount
