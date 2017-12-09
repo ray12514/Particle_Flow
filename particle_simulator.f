@@ -168,8 +168,8 @@ c
       real  xdrange(2,3) 
       common /domainrange/ xdrange
       save partdiam,partdens
-      data partdiam /1e-3,1e-3,1e-6/
-      data partdens /2,1,1000/
+      data partdiam /1e-6,1e-3,1e-3/
+      data partdens /1000,2,100/
 
       integer lcount,icount
       save    lcount,icount
@@ -1776,7 +1776,7 @@ c-------------------------------------------------------------------------
           enddo
         enddo  
          ifield = ifielt
-       call avg_all_particle
+!        call avg_all_particle
       return
       end  
 c----------------------------------------------------------------------
