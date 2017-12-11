@@ -1023,6 +1023,7 @@ c-------------------------------------------------------------------------------
         eul_out=eul_out+1
         call copy(eul_rpart(1,eul_out),
      $     real_parts(1,p_index),num_reals)
+        eul_rpart(jss,eul_out)=time
         call icopy(eul_ipart(1,eul_out),
      $     integer_parts(1,p_index),num_ints)  
         
@@ -1035,6 +1036,7 @@ c-------------------------------------------------------------------------------
 !         if(lag_out.eq.1) write(6,*)'cont.'
         call copy(lag_rpart(1,lag_out),
      $     real_parts(1,p_index),num_reals)
+        lag_rpart(jss,eul_out)=time
         call icopy(lag_ipart(1,lag_out),
      $     integer_parts(1,p_index),num_ints)  
       endif
