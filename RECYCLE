@@ -1,5 +1,5 @@
-     !! This stores the info for the flow and particle
-     !! recycled conditions
+      !! This stores the info for the flow and particle
+      !! recycled conditions
       integer lxyze,yzels,elcount
       !!! Note that the space allocated for lxyze is based on the mesh !!!
       !!! This needs to be upodated before running the simulation      !!!
