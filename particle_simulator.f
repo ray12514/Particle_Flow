@@ -223,7 +223,7 @@ c
               real_parts(jy,l) = ystart + dumy*(ylen -partdiam(i))   ! Particle Initial position 
               real_parts(jz,l) = zstart + dumz*(zlen -partdiam(i))   !
               real_parts(jx,l) =-6.0
-              real_parts(jy,l) =-0.5+partdiam(i)/2
+              real_parts(jy,l) =-0.5+partdiam(i)
 !                if(j.eq.1)   real_parts(jx,l) = -5.5
 !                if(j.eq.2)   real_parts(jy,l) = -1.5
               real_parts(jz,l) = 0.0
