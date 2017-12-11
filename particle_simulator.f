@@ -799,7 +799,7 @@ c-----------------------------------------------------------------------
         
         prad=real_parts(jpd,p_index)*0.5 !Particle radius 
         !Check the wall distance to update for collisions 
-        if(real_parts(jwd,p_index)+1e-12.le.prad) then
+        if(real_parts(jwd,p_index).le.prad) then
 !            write(6,*) 'Particle collision', integer_parts(jai,p_index)
           cl_c=cl_c + 1 !Count the number of collisions  
           !Coefficient of resitution
@@ -955,15 +955,16 @@ c-------------------------------------------------------------------------------
         
         !! Copy info to euler_stats
         call copy(eul_rpart(1,eul_out),
-     $     real_parts(1,p_index),24*ldim+3)
+     $     real_parts(1,p_index),num_reals)
+        eul_rpart(jss,eul_out)=time
         call icopy(eul_ipart(1,eul_out),
-     $     integer_parts(1,p_index),9)
+     $     integer_parts(1,p_index),num_ints)
         
         !! Add new particle
         call copy(real_parts(1,num_total),
-     $     real_parts(1,p_index),24*ldim+3)
+     $     real_parts(1,p_index),num_reals)
         call icopy(integer_parts(1,num_total),
-     $     integer_parts(1,p_index),9)
+     $     integer_parts(1,p_index),num_ints)
         write(6,*) 'added new particle',num_total
          
         integer_parts(jcl,num_total)=3
