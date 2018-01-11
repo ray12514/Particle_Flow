@@ -12,9 +12,7 @@ c     Minimal value of ni = 5
 c     Minimal value of nr = 14*ndim + 1
       integer n,nr,ni
       common  /iparti/ n,nr,ni
-!       common /ptpointers/ jrc,jpt,je0,jps,jai,jgn,nai,jr,jd,jx,jy,jz,jx1
-!      $               ,jx2,jx3,ja0,ja1,ja2,ja3,jv0,jv1,jv2,jv3
-!      $         ,ju0,ju1,ju2,ju3,jgu,jgv,jgw,jwd,jwn,jpd,jrh,jdt,jar,nar
+
       jrc = 1 ! Pointer to fgslib_findpts return code
       jpt = 2 ! Pointer to fgslib_findpts return processor id
       je0 = 3 ! Pointer to fgslib_findpts return element id
@@ -57,15 +55,16 @@ c     Minimal value of nr = 14*ndim + 1
       jgv = jgu+ ndim ! Pointer to v grad at current timestep
       jgw = jgv+ ndim ! Pointer to w grad at current timestep
       
-      jwd = jgw+ndim  ! Pointer to distance to nearest wall
-      jwn = jwd+ndim  ! Pointer to nearest wall coordinates
+      jwd = jgw+ndim     ! Pointer to distance to nearest wall
+      jwn = jwd+1     ! Pointer to nearest wall coordinates
       jpd = jwn+ndim  ! Pointer to particle diameter
       jrh = jpd+1     ! Pointer to particle density 
       jdt = jrh+1     ! Pointer to du/dt at particle location   
-      jar = jdt+ndim  ! Particle to stokes number
-      jds = jar+2*ndim ! Pointer to stress tensor
-      jss = jds+1     ! Pointer to SijSji
-      nar = nr - (jss-1)  ! Number of auxiliary reals
+      jst = jdt+ndim     ! Particle to stokes number
+      jlt = jst+1     ! Pointer to lift term
+      jfr = jlt+ndim  ! Pointer to timestep for tracking
+      jtm = jfr+(5*ndim)     ! Pointer to Force acting on particle 
+      nar = nr - (jtm-1)  ! Number of auxiliary reals
 
       if (nar.le.0) call exitti('Error in nar:$',nr)
       return
@@ -78,16 +77,16 @@ c----------------------------------------------------------------------
       include 'PARTICLES'
       
 !       include 'CTIMER'
-      integer lr,li
-      parameter (lr=27*ldim+1,li=8+1)
+!       integer lr,li
+!       parameter (lr=26*ldim+2,li=8)
       real rpart
       common /rparts/ rpart(lr,lhis)
       integer ipart
       common /iparts/ ipart(li,lhis)
       integer n,nr,ni
       common /iparti/ n,nr,ni
-      real  xdrange(2,3) 
-      common /domainrange/ xdrange
+!       real  xdrange(2,3) 
+!       common /domainrange/ xdrange
 
       integer icalld,ipstep
       save    icalld
@@ -100,8 +99,8 @@ c----------------------------------------------------------------------
         
         call rzero(rpart,lr*lhis)
         call izero(ipart,li*lhis)
-        call domain_size(xdrange(1,1),xdrange(2,1),xdrange(1,2)
-     $                  ,xdrange(2,2),xdrange(1,3),xdrange(2,3))
+!         call domain_size(xdrange(1,1),xdrange(2,1),xdrange(1,2)
+!      $                  ,xdrange(2,2),xdrange(1,3),xdrange(2,3))
         call particle_start (rpart,nr,ipart,ni,n)
       endif 
         
@@ -109,9 +108,9 @@ c----------------------------------------------------------------------
       
       
       if(istep.ge.1000) then
-        if(mod(istep,iostep/1000).eq.0)then     
+!         if(mod(istep,iostep/1000).eq.0)then     
           call volume_stats(rpart,nr,ipart,ni,n)
-        endif
+!         endif
       endif
       
       ipstep = iostep
@@ -133,7 +132,9 @@ c-----------------------------------------------------------------------
       
       
       call set_part_pointers
-      
+!        if(nid.eq.0) write(6,*) 'jtm',jtm
+!        if(nid.eq.0) write(6,*) 'num_reals',num_reals
+!       call exitt 
       if(intpart) then    
         call particle_init       (real_parts,num_reals,integer_parts
      $   ,num_ints,num_total)
@@ -168,8 +169,13 @@ c
       real  xdrange(2,3) 
       common /domainrange/ xdrange
       save partdiam,partdens
-      data partdiam /1e-4,1e-3,1e-3/
-      data partdens /100,100,2/
+      !!! run parameters
+!       data partdiam /0,1e-3,1e-3,3e-3,6e-3/
+!       data partdens /0,1,2,2,2/
+                  !!  150 0 150  400  800 
+!       data partdiam /6e-3,0,1e-3,3e-3,6e-3/
+      data partdiam /1e-3/
+      data partdens /2/
 
       integer lcount,icount
       save    lcount,icount
@@ -222,14 +228,17 @@ c
               real_parts(jx,l) = xstart + dumx*(xlen -partdiam(i))  
               real_parts(jy,l) = ystart + dumy*(ylen -partdiam(i))   ! Particle Initial position 
               real_parts(jz,l) = zstart + dumz*(zlen -partdiam(i))   !
-              real_parts(jx,l) =-6.0
-              real_parts(jy,l) =-0.5+partdiam(i)
-!                if(j.eq.1)   real_parts(jx,l) = -5.5
-!                if(j.eq.2)   real_parts(jy,l) = -1.5
+               real_parts(jx,l) =-5.501
+!                real_parts(jy,l) = 0
+!               if (i.le.2) then  
+                real_parts(jy,l) =-0.5+partdiam(i)
+!               endif
+! !                if(j.eq.1)   real_parts(jx,l) = -5.5
+! !                if(j.eq.2)   real_parts(jy,l) = -1.5
               real_parts(jz,l) = 0.0
               real_parts(jrh,l)=partdens(i)   !Particle density
               real_parts(jpd,l)=partdiam(i)!Particle diameter
-              real_parts(jar,l)= 0.0  
+              real_parts(jst,l)= 0.0  
               integer_parts(jai,l)=k   !Particle ID
               integer_parts(jgn,l)=i   !Particle Group ID 
               if (abs(real_parts(jx,l)).ge.recycle_pos) then 
@@ -253,11 +262,14 @@ c
         npart=0
         npart  = max(npart,lcount)
         num_total= npart
+      if (num_total.gt.0) then  
         write(6,'(I8,A,I8)') num_total, ' particles on proc: ', nid
+      endif  
         call particle_interp_all (real_parts,num_reals,integer_parts
      $   ,num_ints,num_total)
 
         do j=1,num_total
+          real_parts(jtm,i)=time
           do i=0,ndim-1                   !Update the initial particle
             real_parts(jv0+i,j)=real_parts(ju0+i,j) !velocity to fluid velocity                              
           enddo
@@ -382,35 +394,49 @@ c           Solve for velocity at time t^n
       !!!!!   and fgslib_crystal router routine
       !!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      do j=0,ndim-1
+!       do j=0,ndim-1
+!       do i=1,num_total
+!          real_parts(ja3+j,i)=real_parts(ja2+j,i)
+!          real_parts(ja2+j,i)=real_parts(ja1+j,i)
+!          real_parts(ja1+j,i)=real_parts(ja0+j,i)
+! !          real_parts(ja0+j,i)=0.0
+!          real_parts(ju3+j,i)=real_parts(ju2+j,i)
+!          real_parts(ju2+j,i)=real_parts(ju1+j,i)
+!          real_parts(ju1+j,i)=real_parts(ju0+j,i)
+!          real_parts(jv3+j,i)=real_parts(jv2+j,i)
+!          real_parts(jv2+j,i)=real_parts(jv1+j,i)
+!          real_parts(jv1+j,i)=real_parts(jv0+j,i)
+!          if (real_parts(jpd,i).eq.0) then  !Fluid tracer
+!             real_parts(jv1+j,i)=real_parts(ju0+j,i)
+!          endif
+!          real_parts(jx3+j,i)=real_parts(jx2+j,i)
+!          real_parts(jx2+j,i)=real_parts(jx1+j,i)
+!          real_parts(jx1+j,i)=real_parts(jx0+j,i)
+!       enddo
+!       enddo
+     
+!      
       do i=1,num_total
+        real_parts(jtm,i)=time
+        do j=0,ldim-1
          real_parts(ja3+j,i)=real_parts(ja2+j,i)
          real_parts(ja2+j,i)=real_parts(ja1+j,i)
          real_parts(ja1+j,i)=real_parts(ja0+j,i)
-         real_parts(ja0+j,i)=0.0
+!          real_parts(ja0+j,i)=0.0
          real_parts(ju3+j,i)=real_parts(ju2+j,i)
          real_parts(ju2+j,i)=real_parts(ju1+j,i)
          real_parts(ju1+j,i)=real_parts(ju0+j,i)
          real_parts(jv3+j,i)=real_parts(jv2+j,i)
          real_parts(jv2+j,i)=real_parts(jv1+j,i)
          real_parts(jv1+j,i)=real_parts(jv0+j,i)
+         if (real_parts(jpd,i).eq.0) then  !Fluid tracer
+            real_parts(jv1+j,i)=real_parts(ju0+j,i)
+         endif
          real_parts(jx3+j,i)=real_parts(jx2+j,i)
          real_parts(jx2+j,i)=real_parts(jx1+j,i)
          real_parts(jx1+j,i)=real_parts(jx0+j,i)
-      enddo
-      enddo
 
-      
-!      
-      do i=1,num_total
-        do j=0,ldim-1
-            
-!   c       real_parts(ja0+j,i)=(real_parts(ju1+j,i)-real_parts(jv1+j,i))/tau-g(j+1)
-!   c       if(i.eq.1) 
-!   c       write(6,*)real_parts(ja0+j,i),j+1,'acceleration',nid,'proc',i,'pt'
-          
-          !rha=(-real_parts(jv1+j,i))/tau-g(j+1)
-!   c        if(istep.eq.0) rha=0.0
+
           real_parts(jv0+j,i) = real_parts(jv1+j,i)+
      $               dt*(c(1)*real_parts(ja1+j,i)
      $               +c(2)*real_parts(ja2+j,i) 
@@ -446,7 +472,7 @@ c           Solve for velocity at time t^n
 !      call update_particle_location (real_parts,nr,n)
 
 !!!!!!!!!!!!!!! This was to test the Advection shceme !!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!! Only work when Re_p < 1 !!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!! Only works when Re_p < 1 !!!!!!!!!!!!!!!!!!!!!!
 ! !       time_ex=time_ex+dt
 !       do i=1,n
 !         do j=0,ndim-1
@@ -549,30 +575,32 @@ c-----------------------------------------------------------------------
       integer nmax
       parameter(nmax=lhis)
       integer lrf,lif 
-      parameter (lrf=27*ldim+1,lif=8+1)
-      real               loc_rpts(lrf,lhis),rem_rpts(lrf,lhis)
-      common /fptspartr/ loc_rpts,rem_rpts
-      integer            loc_ipts(lif,lhis),rem_ipts(lif,lhis)
-      integer            loc_ptsmap(lhis),rem_ptsmap(lhis)
-      integer            n_loc_pts,n_rem_pts 
-      common /fptsparti/ loc_ipts,rem_ipts,n_loc_pts,n_rem_pts 
-      common /mapss/     loc_ptsmap,rem_ptsmap
+!       parameter (lrf=26*ldim+2,lif=8)
+!       real               loc_rpts(lrf,lhis),rem_rpts(lrf,lhis)
+!       common /fptspartr/ loc_rpts,rem_rpts
+!       integer            loc_ipts(lif,lhis),rem_ipts(lif,lhis)
+!       integer            loc_ptsmap(lhis),rem_ptsmap(lhis)
+!       integer            n_loc_pts,n_rem_pts 
+!       common /fptsparti/ loc_ipts,rem_ipts,n_loc_pts,n_rem_pts 
+!       common /mapss/     loc_ptsmap,rem_ptsmap
       integer ntot,nxyz,num_log
       real tolin
-      integer icalld1,wrk_n,i
-      save    icalld1
-      data    icalld1 /0/
-
+      integer icalld,wrk_n,i
+      save    icalld
+      data    icalld /0/
+      
             
       logical partl         ! This is a dummy placeholder, used in cr()
+      lrf=lr
+      lif=li
       num_log = 0                ! No logicals exchanged
 c      write(6,*) size(loc_ptsmap),'size of local maps' 
       nxyz  = nx1*ny1*nz1
       ntot  = nxyz*nelt
       call opcopy(wrk(1,1),wrk(1,2),wrk(1,3),vx,vy,vz)
       
-      if (icalld1.eq.0) then    ! interpolation setup !? intpts_done(ih_intp_v)?
-        icalld1 = icalld1+1
+      if (icalld.eq.0) then    ! interpolation setup !? intpts_done(ih_intp_v)?
+        icalld = icalld+1
         tolin  = 1.e-12
         if (wdsize.eq.4) tolin = 1.e-6
         call fgslib_crystal_setup (cr_handle,nekcomm,np)
@@ -708,7 +736,12 @@ c---------------------------------------------------------------------
       integer icalld
       save    icalld
       data    icalld /0/
-      
+      !! Hard set y_plus distance
+      real C_f,u_tau,delta_s,visc,d_count,rho_f,y_plus,wall_tau
+      save delta_s
+      !! counter for particles y_plus region
+      integer y_count(pgrp),y_work(pgrp),grp_id
+      real part_pos 
       integer ntotal
       !!!questions about runtal and cl_up
       logical log,col_temp_l
@@ -722,7 +755,14 @@ c---------------------------------------------------------------------
       if (icalld.eq.0) then
 
         ifld=1
-        
+        visc=param(02)
+        rho_f=param(01)
+        y_plus=5
+        C_f=0.026/(1/visc)**(1/7)
+        wall_tau=C_f*rho_f/2
+        u_tau=(wall_tau/rho_f)**(0.5)
+        delta_s=(y_plus*visc)/(u_tau*rho_f)
+        if(nid.eq.0) write(6,*) delta_s,'delta_s'
 !         call rzero(wall_area,nelt)
         call rzero(col_temp_r,rc_index*(2*lhis))  
 !         call rzero(col_data_r,rc_index*(2*lhis))  
@@ -741,6 +781,8 @@ c---------------------------------------------------------------------
         call fgslib_crystal_setup (exit_handle,nekcomm,np)       
 
         icalld=1
+
+        
       endif
 
       !Interpolate the gradient at each partitcle location
@@ -752,16 +794,30 @@ c---------------------------------------------------------------------
      $   num_ints,num_total,wrk2,jwd,1)
 
       !Start the collision collection process  
-      if(nid.eq.0) write(6,*) 'Checking for collisions...'
-      i=0 
+      if(nid.eq.0) write(6,*) 'Checking particle position...'
+      i=0
+      call izero(y_count,pgrp)
       do while (i.lt.num_total.and.num_total.gt.0)
         i=1+i  
         call collisions(real_parts,num_reals,
-     $   integer_parts,num_ints,num_total,i) 
+     $   integer_parts,num_ints,num_total,i)
+
         call particle_position (real_parts,num_reals,
-     $   integer_parts,num_ints,num_total,i)      
-        
+     $   integer_parts,num_ints,num_total,i)
+        part_pos=real_parts(jwd,i)+real_parts(jpd,i)*0.5
+        if (part_pos.lt.delta_s) then
+          grp_id=integer_parts(jgn,i)
+          y_count(grp_id)=y_count(grp_id)+1
+!           write(6,*) real_parts(jwd,i) ,'distance'
+          write(6,*) 'counting',y_count(grp_id),'group',grp_id 
+        endif  
       enddo
+         call igop(y_count,y_work,'+  ',pgrp)
+        !! Use this to see output the number of particles in region  
+!       if ( (mod(istep,iastep).eq.0.and.istep.gt.1) .or.lastep.eq.1) then
+      do i=1,pgrp   
+        if(nid.eq.0) write(6,*) 'number of particles < y+5', y_count(i) 
+      enddo 
       call nekgsync
       !call collision_detection
       return
@@ -803,13 +859,13 @@ c-----------------------------------------------------------------------
 !            write(6,*) 'Particle collision', integer_parts(jai,p_index)
           cl_c=cl_c + 1 !Count the number of collisions  
           !Coefficient of resitution
-          res=e_max*exp(-(e_beta/real_parts(jar,p_index)))
+          res=e_max*exp(-(e_beta/real_parts(jst,p_index)))
 
-          res=1
+!           res=1
           !Determine which wall the paricle hit (1,2,3)
           colin=mymax2(real_parts(jwn:jwn+ndim-1,p_index),ndim)
-!           write(6,*) 'Face', colin
-          write(6,*) res,colin,'resitution and face'
+
+!           write(6,*) res,colin,'resitution and face'
           !Determine the face numbers
 !           ee=integer_parts(je0,p_index)+1 !This needs to be tested, maybe
                                           !just use the coordinate data
@@ -817,16 +873,14 @@ c-----------------------------------------------------------------------
           normc=real_parts(jx0+colin-1,p_index)!The actual collision position
 !           write(6,*) 'position',(real_parts(jx0+i-1,p_index),i=1,ldim)
 !           wallpt=real_parts(jwn+colin-1,p_index)!Not sure if I need this
-          write(6,*)'wall position',normc
+!           write(6,*)'wall position',normc
           !Assign the wall value to the pt.
           !This needs some reworking
           diff=prad-real_parts(jwd,p_index)
           !!make this dependent on particle size if pd=1e-3 then use 1e4
           normc_check=ceiling(abs(normc)*1e3)/1e3
-          write(6,*)normc_check,'normc_check'
-!           if (diff.lt.0) then 
-!           wallpt=abs(normc_check)-abs(diff)
-!           else
+!           write(6,*)normc_check,'normc_check'
+
           wallpt=normc_check-prad
 !           endif
           wallpt=sign(wallpt,normc)
@@ -836,7 +890,7 @@ c-----------------------------------------------------------------------
 !            write(6,*) abs(prad-real_parts(jwd,p_index)),'diff'
 
           real_parts(jx0+colin-1,p_index)=wallpt
-          write(6,*) wallpt,'wallpt' 
+!           write(6,*) wallpt,'wallpt' 
 !           write(6,*) 'position2',(real_parts(jx0+i-1,p_index),i=1,ldim)
 !           write(6,*)'actual wall position',wallpt
             !!!! Having some issues here !!!!!!
@@ -868,7 +922,7 @@ c-----------------------------------------------------------------------
             col_temp_i(4,cl_c)=colin !Now the coord direction ! Collision ID update after transfer
             col_temp_i(5,cl_c)=nid ! real procs number
 !             col_temp_i(6,cl_c)=new_nid ! collection procs number
-          write(6,*)'old vel',real_parts(jv0+colin-1,p_index)
+!           write(6,*)'old vel',real_parts(jv0+colin-1,p_index)
             !!!Update the velocity
             real_parts(jv0+colin-1,p_index)=
      $     -res*real_parts(jv0+colin-1,p_index)
@@ -886,7 +940,7 @@ c-----------------------------------------------------------------------
             real_parts(ja3+colin-1,p_index)=
      $     -real_parts(ja3+colin-1,p_index)
 
-           write(6,*)'new vel',real_parts(jv0+colin-1,p_index)
+!            write(6,*)'new vel',real_parts(jv0+colin-1,p_index)
            endif
       
       if (cl_c.eq.2*lhis.or.lastep.eq.1) then    
@@ -912,10 +966,10 @@ c-------------------------------------------------------------------------------
       integer ee
       real eul_rpart,lag_rpart
       integer eul_ipart,lag_ipart
-      common /euler_lagrang_stats_r/  eul_rpart(27*ldim+1,lhis),
-     $                                lag_rpart(27*ldim+1,lhis)    
-      common /eulerian__lagrang_stats_i/  eul_ipart(9,lhis),
-     $                                    lag_ipart(9,lhis)
+      common /euler_lagrang_stats_r/  eul_rpart(lr,lhis),
+     $                                lag_rpart(lr,lhis)    
+      common /eulerian__lagrang_stats_i/  eul_ipart(li,lhis),
+     $                                    lag_ipart(li,lhis)
       integer eul_out,lag_out 
       save eul_out,lag_out 
       data eul_out ,lag_out /0,0/
@@ -956,7 +1010,7 @@ c-------------------------------------------------------------------------------
         !! Copy info to euler_stats
         call copy(eul_rpart(1,eul_out),
      $     real_parts(1,p_index),num_reals)
-        eul_rpart(jss,eul_out)=time
+!         eul_rpart(jtm,eul_out)=time
         call icopy(eul_ipart(1,eul_out),
      $     integer_parts(1,p_index),num_ints)
         
@@ -1024,7 +1078,7 @@ c-------------------------------------------------------------------------------
         eul_out=eul_out+1
         call copy(eul_rpart(1,eul_out),
      $     real_parts(1,p_index),num_reals)
-        eul_rpart(jss,eul_out)=time
+!         eul_rpart(jtm,eul_out)=time
         call icopy(eul_ipart(1,eul_out),
      $     integer_parts(1,p_index),num_ints)  
         
@@ -1037,7 +1091,7 @@ c-------------------------------------------------------------------------------
 !         if(lag_out.eq.1) write(6,*)'cont.'
         call copy(lag_rpart(1,lag_out),
      $     real_parts(1,p_index),num_reals)
-        lag_rpart(jss,eul_out)=time
+!         lag_rpart(jtm,eul_out)=time
         call icopy(lag_ipart(1,lag_out),
      $     integer_parts(1,p_index),num_ints)  
       endif
@@ -1404,6 +1458,7 @@ c-----------------------------------------------------------------------
      &   integer_parts,num_ints,num_total)
       
       do i=1,num_total
+        if (real_parts(jpd,i).ne.0) then 
         k=0
         crsscrl=0
         FG=0.0  
@@ -1439,11 +1494,11 @@ c-----------------------------------------------------------------------
         Term_v=sqrt(Term_v/(rho_f*cd_r))
    
 
-        real_parts(jar,i)=((rho_p+cm*rho_f)*v_mag*real_parts(jpd,i))
+        real_parts(jst,i)=((rho_p+cm*rho_f)*v_mag*real_parts(jpd,i))
      $                    /(9*visc)
         Stokes=((rho_p+cm*rho_f)*real_parts(jpd,i)**2)/(18*visc)
 
-        Stokes_mean =real_parts(jar,i)
+        Stokes_mean =real_parts(jst,i)
 !         Term_v_ex=Stokes*g_mag*(1-(rho_f/rho_p))
 !       !! Exact solution for particle in uniform flow
 !           if (icalld.eq.0) then 
@@ -1472,6 +1527,9 @@ c-----------------------------------------------------------------------
         if(nnp.eq.1)write(6,*) 'Stokes number: ',Stokes
         if(nnp.eq.1)write(6,*) 'Term_velocity',Term_v
 !         if(nnp.eq.1)write(6,*) 'Term_velocity_ex',Term_v_ex
+        call rzero(real_parts(jfr:jtm-1,i),5*ndim)
+        call rzero(real_parts(ja0:ja0+2,i),ndim)
+
         do j=0,ndim-1 
           FG=pv*g(j+1)*(rho_p - rho_f)
           if(nnp.eq.1)write(6,*)'Force acting on particle FG', FG, j+1 
@@ -1503,11 +1561,19 @@ c-----------------------------------------------------------------------
           
 
           FL=1.6*real_parts(jpd,i)**2*((visc*rho_f)**(0.5))*crsscrl
-          FL=FL/sqrt(abs(real_parts(jds+j,i))) 
+          FL=FL/sqrt(abs(real_parts(jlt+j,i))) 
 
           if(nnp.eq.1)write(6,*)'Force acting on particle FL', FL, j+1
           
+
           FP=FG+FD+FS+FL
+          real_parts(jfr+j+k,i)=FG
+          real_parts(jfr+1+j+k,i)=FD
+          real_parts(jfr+2+j+k,i)=FS
+          real_parts(jfr+3+j+k,i)=FL
+          real_parts(jfr+4+j+k,i)=FP
+
+          
 !           FP=FG
 !           if(j.eq.1) real_parts(jgw,i)=FP
           if(nnp.eq.1)write(6,*)'Total force FP', FP, j+1
@@ -1519,12 +1585,13 @@ c-----------------------------------------------------------------------
           real_parts(ja0+j,i)=Accel
           k=k+ndim
         enddo
+        endif
       enddo
 !       if(icalld.eq.0) then
 !         call copy (g_ex,g,ndim)
 ! !         call copy (Stokes_ex,Stokes,n)
 !         icalld=1
-!       endif  
+!        endif  
       
       return
       end
@@ -1670,12 +1737,8 @@ c-------------------------------------------------------------------------
 
       !curl of the velocity field 
       call particle_interp_local (real_parts,num_reals,integer_parts
-     &   ,num_ints,num_total,dcrl,jds,ndim)
-      
-!       !Interpolate SijSji 
-!       call particle_interp_local (real_parts,num_reals,integer_parts
-!      &   ,num_ints,num_total,dsij,jss,1)
-
+     &   ,num_ints,num_total,dcrl,jlt,ndim)
+        
       return
       end  
 c-------------------------------------------------------------------------

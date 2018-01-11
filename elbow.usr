@@ -247,7 +247,7 @@ c
       
       !call domain_size(xmin,xmax,ymin,ymax,zmin,zmax)
       !Surface area of the domain
-      A_w=4*21
+      A_w=4*22
       tw_x     = dragx_avg/A_w + 1.e-50
       tw_y     = dragy_avg/A_w + 1.e-50
       tw_z     = dragz_avg/A_w + 1.e-50
@@ -354,15 +354,50 @@ c
       end
 c-----------------------------------------------------------------------     
       subroutine do_stuff ()
-      implicit none  
+!       implicit none  
       include 'SIZE'
       include 'TOTAL'
       include 'PARTICLES'
+
       real m1(lx1,ly1,lz1,lelt),d(lx1,ly1,lz1,lelt)
-      real uin,rq
-      
-      uin=1.0
-      rq =1.5
+      common /myoutflow/ d,m1
+      real uin,rq,val
+      integer e,f,ii
+      integer KX1,KX2,KY1,KY2,KZ1,KZ2
+      logical IFNORX,IFNORY,IFNORZ
+      uin=0
+      rq =2
+!       if (istep.eq.0) then
+!       ii=0 
+!       val =0.0 
+!       do e=1,nelv
+!         do f=1,2*ldim
+!            CALL CHKNORD (IFALGN,IFNORX,IFNORY,IFNORZ,f,e)
+!            call facind (KX1,KX2,KY1,KY2,KZ1,KZ2,nx1,ny1,nz1,f)
+!            if (IFNORY) then 
+!               do i=KX1,KX2
+!               do j=KY1,KY2
+!               do k=KZ1,KZ2
+!                    val=val+ym1(i,j,k,e)
+!               enddo     
+!               enddo     
+!               enddo
+!               val=val/(nx1*nx1)
+!               if (floor(val).eq.-11) then 
+! !                   cbc(f,e,1)= 'O  ' )
+!               write(6,*) e,f,val 
+!               endif
+! !               if(cbc(f,e,1).eq.'O  ' ) then
+! !                 write(6,*) UNY(1,1,f,e)
+! ! !                 write(6,*)ym1(1,1,1,e),'yo',e,f
+! !               ii=ii+1
+! !               endif
+!             endif
+!         enddo          
+!       enddo
+!       write(6,*) ii,'count'
+!       call exitt
+!       endif 
       call turb_outflow(d,m1,rq,uin)
       call set_inflow
       call shear

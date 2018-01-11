@@ -10,7 +10,7 @@
 
 # Put a unique job name here
 # so that you can monitor it in the queue
-#PBS -N elbow_avg
+#PBS -N Particle_Flow
 
 # Define the queue you're submitting to
 #PBS -q production.q
@@ -32,7 +32,7 @@
 # The max walltime for this job is 1 hour 31 minutes
 # Set this longer than required for run!!!
 # Set number of nodes/ppn to number of cores required: 8..1 is 8 nodes, 1 core per node
-#PBS -l walltime=96:00:00,nodes=4:ppn=12
+#PBS -l walltime=96:00:00,nodes=6:ppn=12
 
 # Keep this.
 cd $PBS_O_WORKDIR

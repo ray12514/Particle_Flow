@@ -1,18 +1,21 @@
 !         Variables for the particles
 !
       integer pgrp
-      parameter(pgrp = 3) ! Particle group number
+      parameter(pgrp = 1) ! Particle group number
+      integer lr,li
+      parameter (lr=30*ldim,li=8) ! Number of auxiliary reals 
+                                    ! and ints  
        integer jrc,jpt,je0,jps,jai,jgn,jcp,jcl,nai,jr,jd,jx,
      $           jy,jz,jx1,jx2,jx3,ja0
      $          ,ja1,ja2,ja3,jv0,jv1,jv2,jv3
      $         ,ju0,ju1,ju2,ju3,jgu,jgv,jgw,
-     $          jwd,jwn,jpd,jrh,jdt,jar,jds,jss,nar
+     $          jwd,jwn,jpd,jrh,jdt,jst,jlt,jfr,jtm,nar
       common /ptpointers/ jrc,jpt,je0,jps,jai,
      $          jgn,jcp,jcl,nai,jr,jd,jx,
      $           jy,jz,jx1,jx2,jx3,ja0
      $          ,ja1,ja2,ja3,jv0,jv1,jv2,jv3
      $         ,ju0,ju1,ju2,ju3,jgu,jgv,jgw,
-     $          jwd,jwn,jpd,jrh,jdt,jar,jds,jss,nar
+     $          jwd,jwn,jpd,jrh,jdt,jst,jlt,jfr,jtm,nar
 
 
 	    real           upavg(lx1*ly1*lz1*lelv*pgrp)
